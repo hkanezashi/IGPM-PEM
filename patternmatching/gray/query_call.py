@@ -178,7 +178,8 @@ def run_query(gfile, qargs, plot_graph=False, show_graph=False):
   ## Post-processing (Grouping and Aggregation)
   ## GroupBy
   if groupby:
-    gr = Grouping.Grouping(groupby)
+    # gr = Grouping.Grouping(groupby)
+    gr = Grouping.Grouping()
     groups = gr.groupBy(results)
     for k, v in groups:
       print k, len(v)

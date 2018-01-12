@@ -1,3 +1,5 @@
+"""
+Parse graph query and get eval conditions
 
 # References:
 # http://stackoverflow.com/questions/11133339/parsing-a-complex-logical-expression-in-pyparsing-in-a-binary-tree-fashion
@@ -5,6 +7,8 @@
 # http://pyparsing.wikispaces.com/file/view/simpleArith.py/30268305/simpleArith.py
 # http://qiita.com/knoguchi/items/ee949989d0a9f04bee6f
 # http://qiita.com/knoguchi/items/6f9b7383b7252a9ebdad
+"""
+
 
 import logging
 import pyparsing as pp
@@ -32,7 +36,7 @@ term << (factor + pp.ZeroOrMore(muldiv + factor))
 factor << (numvalue | propsymbol | LPAR + formula + RPAR)
 
 factor = numvalue | propsymbol
-condition = pp.Group(factor + compare + factor)
+# condition = pp.Group(factor + compare + factor)
 
 formula = pp.infixNotation(factor,[
   (muldiv, 2, pp.opAssoc.LEFT, ),
@@ -57,7 +61,7 @@ class ConditionParser:
   def __init__(self, eq_str):
     self.expr = expr.parseString(eq_str)[0]
     
-  def eval(self, g, nodemap={}, expr=None):
+  def eval(self, g, nodemap=set(), expr=None):
     if expr is None:
       expr = self.expr
     logging.info(expr)
@@ -127,8 +131,8 @@ if __name__ == "__main__":
   cp = ConditionParser("x.a > 7 AND x.b < 8 OR x.c * 2 - 6 == 4")
   g = nx.Graph()
   g.add_node("y", a="10", b="5", c="2")
-  nodemap = {"x": "y"} ## Node symbol (query -> output)
-  ret = cp.eval(g, nodemap)
+  node_map = {"x": "y"} ## Node symbol (query -> output)
+  ret = cp.eval(g, node_map)
   print ret
 
 

@@ -1,3 +1,11 @@
+"""
+EXTRACT algorithm implementation
+
+Tong, Hanghang, and Christos Faloutsos. "Center-piece subgraphs: problem definition and fast solutions."
+Proceedings of the 12th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2006.
+"""
+
+
 from Condition import *
 
 MAX_LENGTH = 5

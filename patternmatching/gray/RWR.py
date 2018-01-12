@@ -1,6 +1,9 @@
 """
+Random walk with restart with matrix multiplications
+
 Retrieved and simplified some functions from https://github.com/TuftsBCB/Walker/blob/master/walker.py
 """
+
 
 import numpy as np
 import networkx as nx
@@ -31,7 +34,7 @@ class RWR:
     diff_norm = 1
     p_t = np.copy(p_0)
     
-    while (diff_norm > CONV_THRESHOLD):
+    while diff_norm > CONV_THRESHOLD:
       p_t_1 = self._calculate_next_p(p_t, p_0)
       diff_norm = np.linalg.norm(np.subtract(p_t_1, p_t), 1)
       p_t = p_t_1

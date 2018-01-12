@@ -1,3 +1,11 @@
+"""
+Extract a pattern subgraph with G-Ray algorithm
+
+Tong, Hanghang, et al. "Fast best-effort pattern matching in large attributed graphs."
+Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2007.
+"""
+
+
 import networkx as nx
 import random
 from math import log

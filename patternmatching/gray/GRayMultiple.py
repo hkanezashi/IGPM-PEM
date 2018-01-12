@@ -1,3 +1,10 @@
+"""
+Extract multiple pattern subgraphs with G-Ray algorithm
+
+Tong, Hanghang, et al. "Fast best-effort pattern matching in large attributed graphs."
+Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2007.
+"""
+
 import networkx as nx
 import random
 from math import log
@@ -15,7 +22,7 @@ class GRayMultiple:
     self.graph_rwr = {}
     self.query = query
     self.directed = directed
-    self.results = [] ## QueryResult
+    self.results = [] ## QueryResult list
     self.count = 0
     self.extracts = {}
     self.cond = cond ## Complex condition

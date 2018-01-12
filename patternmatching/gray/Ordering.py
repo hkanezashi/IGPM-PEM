@@ -16,7 +16,7 @@ class Ordering:
     else:
       elemKey = symbols
       propKey = None
-    return (elemKey, propKey)
+    return elemKey, propKey
   
   
   def orderBy(self, results, desc=False):

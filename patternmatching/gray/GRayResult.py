@@ -83,7 +83,7 @@ class GRayResult:
   def bridge(self, i, j):
     assert (i != j)
     V = self.graph.nodes()
-    X = set([i])
+    X = {i}
     d = {}
     l = {}
     pre = {}

@@ -40,7 +40,7 @@ class Condition:
     # print src, dst, edges
     for k, v in edges.iteritems():
       if LABEL in v:
-        return (k, v[LABEL])
+        return k, v[LABEL]
     return None
   
   """
@@ -113,13 +113,7 @@ class Condition:
       return True
     labels = Condition.get_edge_labels(g, src, dst)
     return label in labels.values()
-    """
-    data = g.get_edge_data(src, dst)
-    for ldata in data.values():
-      if ldata[LABEL] == label:
-        return True
-    return False
-    """
+    
   
   @staticmethod
   def get_node_prop(g, id, key):

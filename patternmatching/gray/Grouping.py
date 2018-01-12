@@ -9,10 +9,10 @@ class Grouping:
 
   def parse(self, exprs):
     for expr in exprs:
-      self.keyelem.append(Grouping.parse(expr))
+      self.keyelem.append(Grouping._parse(expr))
 
   @staticmethod
-  def parse(expr):
+  def _parse(expr):
     symbols = expr.split(".")
     if len(symbols) == 2:
       elemKey = symbols[0]
@@ -32,7 +32,7 @@ class Grouping:
       key = []
       for ke in self.keyelem:
         v = result.get_node_prop(ke[0], ke[1])
-        key.append[v]
+        key.append(v)
       if not key in groupkeys:
         groupkeys.add(key)
         groups[key] = []
