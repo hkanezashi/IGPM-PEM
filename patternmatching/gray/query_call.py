@@ -1,22 +1,22 @@
 import networkx as nx
-import matplotlib.pylab as plt
-import csv
+import json
+from networkx.readwrite import json_graph
 import sys
-import getopt
-import logging
 
 import GRayMultiple
-from Condition import *
-import ConditionParser
-import Grouping
-import Ordering
-import Aggregator
+from patternmatching.query.Condition import *
+from patternmatching.query.ConditionParser import ConditionParser
+from patternmatching.query import Grouping, Ordering
+import aggregator
 
 ### Label -> matplotlib color string
 label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
   
 
-def run_query(gfile, qargs, plot_graph=False, show_graph=False):
+def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
+  
+  if plot_graph:
+    import matplotlib.pylab as plt
   
   """
   ## InputGraph (args[1]): edge list file name
@@ -36,10 +36,10 @@ def run_query(gfile, qargs, plot_graph=False, show_graph=False):
   orderby = [] ## OrderBy symbols
   aggregates = [] ## Aggregate Operators
   
-  logging.info("Query Arguments: " + " ".join(qargs))
+  logging.info("Query Arguments: " + " ".join(query_args))
   
   mode = 'command'
-  for arg in qargs:
+  for arg in query_args:
     if arg == '--graph':
       mode = 'graph'
     elif arg == '--vertex':
@@ -90,11 +90,16 @@ def run_query(gfile, qargs, plot_graph=False, show_graph=False):
         aggregates.append(arg)
       
   
+  ## Load JSON graph file
+  with open(graph_json, "r") as f:
+    json_data = json.load(f)
+    graph = json_graph.node_link_graph(json_data)
+  
   if directed:
-    graph = nx.MultiDiGraph(nx.read_gml(gfile))
+    # graph = nx.MultiDiGraph(nx.read_gml(gfile))
     query = nx.MultiDiGraph()
   else:
-    graph = nx.MultiGraph(nx.read_gml(gfile))
+    # graph = nx.MultiGraph(nx.read_gml(gfile))
     query = nx.MultiGraph()
     # graph.to_undirected()
   
@@ -195,7 +200,7 @@ def run_query(gfile, qargs, plot_graph=False, show_graph=False):
   ## Aggregator
   if aggregates:
     for aggregate in aggregates:
-      ag = Aggregator.Aggregator(aggregate)
+      ag = aggregator.Aggregator(aggregate)
       ret = ag.get_result(results)
       print aggregate, ret
   

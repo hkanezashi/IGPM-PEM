@@ -20,6 +20,7 @@ class RWR:
   
   def _build_matrices(self, graph):
     self.OG = graph
+    self.nodelist = list(self.OG.nodes())
     og_not_normalized = nx.to_numpy_matrix(graph)
     self.og_matrix = self._normalize_cols(og_not_normalized)
   
@@ -59,7 +60,7 @@ class RWR:
     p_0 = [0] * self.OG.number_of_nodes()
     for source_id in sources:
       try:
-        source_index = self.OG.nodes().index(source_id)
+        source_index = self.nodelist.index(source_id)
         p_0[source_index] = 1 / float(len(sources))
       except ValueError:
         sys.exit("Source node {} is not in original graph. Source: {}. Exiting.".format(source_id, sources))

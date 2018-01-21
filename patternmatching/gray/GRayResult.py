@@ -2,7 +2,7 @@ from math import log
 from random import random
 
 import networkx as nx
-import RWR
+import rwr
 
 
 class GRayResult:
@@ -105,7 +105,7 @@ class GRayResult:
       V.remove(u)
       X.add(u)
       for v in self.graph.neighbors(u):
-        if (v in V):
+        if v in V:
           rw = self.rwr(self.graph, i, v)
           dist = (rw + d[u] * l[u]) / (l[u] + 1)
           if d[v] < dist:
@@ -128,6 +128,6 @@ class GRayResult:
   def rwr(self, g, m, n):  # Random walk with restart m -> n in g
     RESTART_PROB = 0.7
     OG_PROB = 0.1
-    rw = RWR.RWR(g)
+    rw = rwr.RWR(g)
     results = rw.run_exp(m, RESTART_PROB, OG_PROB)
     return results[n]

@@ -59,9 +59,13 @@ expr = pp.operatorPrecedence(condition,[
 class ConditionParser:
   
   def __init__(self, eq_str):
+    """
+    :param eq_str: Query string
+    :type eq_str: str
+    """
     self.expr = expr.parseString(eq_str)[0]
     
-  def eval(self, g, nodemap=set(), expr=None):
+  def eval(self, g, nodemap={}, expr=None):
     if expr is None:
       expr = self.expr
     logging.info(expr)

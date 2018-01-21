@@ -1,0 +1,15 @@
+{
+  "directed": true,
+  "graph": {},
+  "nodes": [
+    {"id": 0, "label": "cyan"},
+    {"id": 1, "label": "cyan"},
+    {"id": 2, "label": "cyan"}
+  ],
+  "links": [
+    {"source": 0, "target": 1, "label": "yes"},
+    {"source": 1, "target": 2, "label": "yes"},
+    {"source": 2, "target": 0, "label": "yes"}
+  ],
+  "multigraph": false
+}

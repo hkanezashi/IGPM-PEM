@@ -25,7 +25,7 @@ class Aggregator:
       else:
         elemKey = elems[0]
         propKey = None
-    return (opKey, elemKey, propKey)
+    return opKey, elemKey, propKey
 
   def get_result(self, results):
     if not results:
@@ -41,11 +41,7 @@ class Aggregator:
     elif opKey == "MIN":
       return min(float(x.get_node_prop(elemKey, propKey)) for x in results)
     elif opKey == "MAX":
-      """
-      print elemKey, propKey
-      for x in results:
-        print x.get_graph().nodes()
-      """
+      # print elemKey, propKey
       return max(float(x.get_node_prop(elemKey, propKey)) for x in results)
     elif opKey == "SUM":
       return sum(float(x.get_node_prop(elemKey, propKey)) for x in results)

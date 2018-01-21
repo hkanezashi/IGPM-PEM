@@ -11,7 +11,7 @@ import random
 from math import log
 import logging
 
-import RWR
+import rwr
 
 
 class GRay:
@@ -22,6 +22,12 @@ class GRay:
   
   
   def run_gray(self, num):
+    """
+    Run G-Ray algorithm for a pattern
+    :param num: Number of iterations to find vertices
+    :return:
+    """
+    
     for t in range(num):
       logging.info("---- Start itetation number " + str(t) + "/" + str(num) + " ----")
       touched = []
@@ -141,27 +147,6 @@ class GRay:
         continue
       
       log_good = log(self.rwr(self.graph, i, j_))
-      """
-      log_good = 0
-      for i_ in candidates_i:
-        if not i_ in self.result.nodes():
-          log_good += log(self.rwr(self.graph, i_, j_))
-      """
-      
-      """
-      log_good = 0
-      for l_ in self.query.neighbors(k):
-        if unproc.has_edge(k, l_):
-          temp = 0
-          for i_ in candidates_i:
-            temp += self.rwr(self.graph, i_, j_)
-            log_good += log(temp / len(candidates_i))
-          logging.debug("###### NeighborExpander#RWR,unprocessed: " + str(k) + " -> " + str(l_) + ": " + str(temp))
-        else:
-          temp = log(self.rwr(self.graph, i, j_))
-          log_good += temp
-          logging.debug("###### NeighborExpander#RWR,processed: " + str(k) + " -> " + str(l_) + ": " + str(temp))
-      """
       
       logging.debug("#### NeighborExpander#log_good: " + str(i) + " -> " + str(j_) + " " + str(log_good))
       
@@ -178,10 +163,10 @@ class GRay:
     assert(i != j)
     logging.info("## Bridge between: " + str(i) + " -> " + str(j))
     V = self.graph.nodes()
-    X = set([i])
+    X = {i}
     d = {}
     l = {}
-    pre = {}
+    pre = dict()
     d[i] = self.rwr(self.graph, i, i)
     l[i] = 1
     pre[i] = i
@@ -229,7 +214,7 @@ class GRay:
   def rwr(self, g, m, n):  # Random walk with restart m -> n in g
     RESTART_PROB = 0.7
     OG_PROB = 0.1
-    rw = RWR.RWR(g)
+    rw = rwr.RWR(g)
     results = rw.run_exp(m, RESTART_PROB, OG_PROB)
     logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
     return results[n]

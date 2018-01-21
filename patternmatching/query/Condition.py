@@ -9,23 +9,22 @@ class Condition:
 
   @staticmethod
   def get_node_label(g, i):
-    return g.node[i].get(LABEL, '')
+    return g.nodes(data=True)[i].get(LABEL, '')
   
   @staticmethod
   def get_edges(g, src, dst):
-    return g.edge[src][dst]
+    return g.edges[src, dst]
   
   """
   Get a dict between edge ID and label from specified src and dst
   """
   @staticmethod
   def get_edge_labels(g, src, dst):
-    edges = g.edge[src][dst]
+    edges = g.edges(src, dst, keys=True)
     labels = {}
     # print type(g)
     # print edges
-    for k, v in edges.iteritems():
-      eid = k
+    for s, d, eid, v in edges:
       l = v[LABEL]
       labels[eid] = l
     return labels
@@ -35,11 +34,11 @@ class Condition:
   """
   @staticmethod
   def get_edge_label(g, src, dst):
-    edges = g.edge[src][dst]
+    edges = g.edges(src, dst, keys=True)
     # print g.edge
     # print src, dst, edges
-    for k, v in edges.iteritems():
-      if LABEL in v:
+    for s, d, k, v in edges:
+      if v is not None and LABEL in v:
         return k, v[LABEL]
     return None
   
@@ -48,10 +47,10 @@ class Condition:
   """
   @staticmethod
   def get_edges_from_label(g, src, dst, label):
-    edges = g.edge[src][dst]
+    edges = g.edges(src, dst, keys=True)
     eids = []
-    for k, v in edges.iteritems():
-      if v[LABEL] == label:
+    for s, d, k, v in edges:
+      if v is not None and v[LABEL] == label:
         eids.append(k)
     return eids
   
@@ -62,7 +61,7 @@ class Condition:
   def remove_edges_from_label(g, src, dst, label):
     eids = Condition.get_edges_from_label(g, src, dst, label)
     for eid in eids:
-      del g.edge[src][dst][eid]
+      del g.edges[src, dst, eid]
   
   """
   Remove an edge with specified src, dst and label
@@ -76,7 +75,7 @@ class Condition:
         eid = k
         break
     if eid is not None:
-      del g.edge[src][dst][eid]
+      del g.edges[src, dst, eid]
     else:
       logging.warning("No such edges with specified label found: " + label)
   
@@ -87,25 +86,11 @@ class Condition:
   @staticmethod
   def remove_edge_from_id(g, src, dst, eid):
     if eid is None:
-      for id in g.edge[src][dst]:
+      for s, d, id, v in g.edges(src, dst, keys=True):
         eid = id  # Pick up the first ID
         break
-    del g.edge[src][dst][eid]
+    g.remove_edge(src, dst, eid)
   
-  # https://networkx.github.io/documentation/networkx-1.9.1/reference/generated/networkx.MultiGraph.get_edge_data.html
-  """
-  @staticmethod
-  def get_edge_label(g, src, dst):
-    data = g.get_edge_data(src, dst)
-    # print data
-    # print data.values()
-    for ldata in data.values():
-      # print ldata
-      if LABEL in ldata:
-        return ldata[LABEL]
-    return None
-    # return g.edge[src][dst].get(LABEL, '')
-  """
   
   @staticmethod
   def has_edge_label(g, src, dst, label):
@@ -117,23 +102,24 @@ class Condition:
   
   @staticmethod
   def get_node_prop(g, id, key):
-    return g.node[id].get(key, '')
+    # print g.nodes(data=True)[id]
+    return g.nodes(data=True)[id].get(key, '')
 
   @staticmethod
   def get_node_props(g, id):
-    return g.node[id]
+    return g.nodes(data=True)[id]
 
   @staticmethod
   def get_edge_prop(g, src, dst, key):
-    return g.edge[src][dst].get(key, '')
+    return g.edges[src, dst].get(key, '')
   
   @staticmethod
   def is_path(g, src, dst, id=0):
-    return g.edge[src][dst][id].get(TYPE, '') == PATH
+    return g.edges[src, dst, id].get(TYPE, '') == PATH
   
   @staticmethod
   def set_path(g, src, dst, id=0):
-    g.edge[src][dst][id][TYPE] = PATH
+    g.edges[src, dst, id][TYPE] = PATH
 
   ## Check whether this vertex has same label and props
   @staticmethod

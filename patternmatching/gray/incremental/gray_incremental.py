@@ -8,8 +8,7 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 import networkx as nx
 from math import log
 
-import rwr
-import extract
+from patternmatching.gray import extract
 from patternmatching.query.Condition import *
 from patternmatching.query import QueryResult
 
@@ -413,7 +412,7 @@ class GRayMultiple:
   def computeRWR(self):
     RESTART_PROB = 0.7
     OG_PROB = 0.1
-    rw = rwr.RWR(self.graph)
+    rw = RWR.RWR(self.graph)
     for m in self.graph.nodes():
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
@@ -429,7 +428,7 @@ class GRayMultiple:
   def rwr(g, m, n):  # Random walk with restart m -> n in g
     RESTART_PROB = 0.7
     OG_PROB = 0.1
-    rw = rwr.RWR(g)
+    rw = RWR.RWR(g)
     results = rw.run_exp(m, RESTART_PROB, OG_PROB)
     logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
     return results[n]

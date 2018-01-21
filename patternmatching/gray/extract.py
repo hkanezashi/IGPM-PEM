@@ -6,16 +6,14 @@ Proceedings of the 12th ACM SIGKDD international conference on Knowledge discove
 """
 
 
-from Condition import *
+from patternmatching.query.Condition import *
 
 MAX_LENGTH = 5
 
 class Extract:
   
   def __init__(self, g, rwr, label=None):
-    # self.d = {}
-    # self.l = {}
-    self.pre = {}
+    self.pre = dict()
     self.rwr = rwr
     self.g = g
     self.label = label
@@ -31,11 +29,9 @@ class Extract:
       self.computeExtractSingle(i)
 
   def computeExtractSingle(self, i):
-    d = {}   ## Distance
-    l = {}   ## Hops
+    d = dict()   ## Distance
+    l = dict()   ## Hops
     X = set()   ## Finished set
-    # V = self.g.nodes() ## Processing queue
-    # V = nx.ego_graph(self.g, i, radius=MAX_LENGTH).nodes()
     V = {i}
     d[i] = self.getRWR(i, i)
     l[i] = 1
@@ -75,11 +71,11 @@ class Extract:
   
   ## Extract the best path i -> j
   def getPath(self, i, j):
-    lst = []
+    lst = list()
     if not i in self.pre:
-      return []
+      return lst
     if not j in self.pre[i]:
-      return []
+      return lst
     v = j
     while v != i:
       lst.append(v)
