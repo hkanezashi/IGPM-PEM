@@ -1,0 +1,119 @@
+"""
+EXTRACT algorithm implementation
+
+Tong, Hanghang, and Christos Faloutsos. "Center-piece subgraphs: problem definition and fast solutions."
+Proceedings of the 12th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2006.
+"""
+
+
+from patternmatching.query.Condition import *
+
+MAX_LENGTH = 5
+
+class Extract:
+  
+  def __init__(self, g, rwr, label=None):
+    self.pre = dict()
+    self.rwr = rwr
+    self.g = g
+    self.label = label
+  
+  def getRWR(self, i, j):
+    return self.rwr[i][j]
+  
+  def computeExtract_batch(self):
+    """Compute all neighbors and paths
+    
+    :return:
+    """
+    for i in self.g.nodes():
+      self.pre[i] = {}
+      self.pre[i][i] = i
+      self.computeExtractSingle(i)
+  
+  def computeExtract_incremental(self, nodes):
+    """Compute neighbors and paths for specified node set
+    
+    :param nodes: Node set for recomputations
+    :return:
+    """
+    for n in nodes:
+      self.computeExtractSingle(n)
+      
+
+  def computeExtractSingle(self, i):
+    """Compute from the specified single node
+    
+    :param i: Start node ID
+    :return:
+    """
+    dist = dict()   ## Distance score
+    hops = dict()   ## Hops
+    finished = set()   ## Finished set
+    V = {i}
+    dist[i] = self.getRWR(i, i)
+    hops[i] = 1
+    for u in V:
+      if i != u:
+        dist[u] = 0
+        hops[u] = 0
+    
+    while V:
+      max_d = 0
+      u = None # V[0]
+      for u_ in V:
+        if dist[u_] > max_d:
+          max_d = dist[u_]
+          u = u_
+      V.remove(u)
+      finished.add(u)
+      
+      if u in hops:
+        if hops[u] >= MAX_LENGTH:
+          continue
+      else:
+        hops[u] = 0
+      
+      for v in self.g.neighbors(u):
+        if self.label is not None and not self.label in Condition.get_edge_labels(self.g, u, v).values():
+          continue
+        if not v in finished:
+          V.add(v)
+        rw = self.getRWR(i, v)
+        lu = hops[u]
+        d = (rw + dist[u] * lu)/(lu + 1)
+        if (not v in dist) or (dist[v] < d):
+          dist[v] = d
+          hops[v] = lu + 1
+          self.pre[i][v] = u
+  
+  ## Extract the best path i -> j
+  def getPath(self, i, j):
+    lst = list()
+    if not i in self.pre:
+      return lst
+    if not j in self.pre[i]:
+      return lst
+    v = j
+    while v != i:
+      lst.append(v)
+      if not v in self.pre[i]:
+        return []
+      v = self.pre[i][v]
+    lst.reverse()
+    # print i, j, lst
+    return lst
+
+  ## Extract the best paths from i
+  def getPaths(self, i):
+    paths = {}
+    if not i in self.pre:
+      return paths
+    for j in self.g.nodes():
+      if not j in self.pre[i]:
+        continue
+      path = self.getPath(i, j)
+      if path:
+        paths[j] = path
+    return paths
+

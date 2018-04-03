@@ -14,7 +14,64 @@ from patternmatching.query.Condition import *
 from patternmatching.query import QueryResult
 
 
+def equal_graphs(g1, g2):
+  ns1 = set(g1.nodes())
+  ns2 = set(g2.nodes())
+  # logging.debug("Node 1: " + str(ns1))
+  # logging.debug("Node 2: " + str(ns2))
+  diff = ns1 ^ ns2
+  if diff:  ## Not empty (has differences)
+    return False
+  
+  es1 = set(g1.edges())
+  es2 = set(g2.edges())
+  # logging.debug("Edge 1: " + str(es1))
+  # logging.debug("Edge 2: " + str(es2))
+  diff = es1 ^ es2
+  if diff:
+    return False
+  
+  return True
+
+
+def valid_result(result, query, nodemap):
+  ## TODO: The number of vertices and edges of graphs with paths will vary
+  hasPath = False
+  etypes = nx.get_edge_attributes(query, TYPE)
+  for k, v in etypes.iteritems():
+    if v == PATH:
+      hasPath = True
+      break
+  
+  if not hasPath:
+    nr_num = result.number_of_nodes()
+    nq_num = query.number_of_nodes()
+    if nr_num != nq_num:
+      return False
+    
+    er_num = result.number_of_edges()
+    eq_num = query.number_of_edges()
+    if er_num != eq_num:
+      return False
+
+  # print nodemap
+  # print query.edges()
+  # print result.edges()
+  for qn, rn in nodemap.iteritems():
+    qd = query.degree(qn)
+    rd = result.degree(rn)
+    # print "degree:", qn, qd, rn, rd
+    if qd != rd:
+      return False
+  
+  return True
+
+
 class GRayMultiple:
+  """
+  Class of basic G-Ray implementation (it outputs multiple patterns)
+  """
+  
   def __init__(self, graph, query, directed, cond):
     self.graph = graph
     self.graph_rwr = {}
@@ -59,6 +116,7 @@ class GRayMultiple:
       nodemap[k] = i
       # result.add_node(i, label=il)
       result.add_node(i)
+      result.nodes[i][LABEL] = il
       for name, value in props.iteritems():
         result.nodes[i][name] = value
       
@@ -73,64 +131,6 @@ class GRayMultiple:
       ext.computeExtract()
       self.extracts[label] = ext
     return self.extracts[label]
-  
-  def equal_graphs(self, g1, g2):
-    ns1 = set(g1.nodes())
-    ns2 = set(g2.nodes())
-    # logging.debug("Node 1: " + str(ns1))
-    # logging.debug("Node 2: " + str(ns2))
-    diff = ns1 ^ ns2
-    if diff:  ## Not empty (has differences)
-      return False
-    
-    es1 = set(g1.edges())
-    es2 = set(g2.edges())
-    # logging.debug("Edge 1: " + str(es1))
-    # logging.debug("Edge 2: " + str(es2))
-    diff = es1 ^ es2
-    if diff:
-      return False
-    
-    return True
-
-  def valid_result(self, result, query, nodemap):
-    ## TODO: The number of vertices and edges of graphs with paths will vary
-    hasPath = False
-    etypes = nx.get_edge_attributes(query, TYPE)
-    for k, v in etypes.iteritems():
-      if v == PATH:
-        hasPath = True
-        break
-    
-    if not hasPath:
-      nr_num = result.number_of_nodes()
-      nq_num = query.number_of_nodes()
-      if nr_num != nq_num:
-        return False
-      
-      er_num = result.number_of_edges()
-      eq_num = query.number_of_edges()
-      if er_num != eq_num:
-        return False
-
-    # print nodemap
-    # print query.edges()
-    # print result.edges()
-    for qn, rn in nodemap.iteritems():
-      qd = query.degree(qn)
-      rd = result.degree(rn)
-      # print "degree:", qn, qd, rn, rd
-      if qd != rd:
-        return False
-    
-    """
-    r_deg = sorted(result.degree(result.nodes()).values())
-    q_deg = sorted(query.degree(query.nodes()).values())
-    # print r_deg, q_deg
-    if r_deg != q_deg:
-      return False
-    """
-    return True
 
   def append_results(self, result, nodemap):
     if self.cond is not None and not self.cond.eval(result, nodemap):
@@ -138,33 +138,16 @@ class GRayMultiple:
     
     for r in self.results:
       rg = r.get_graph()
-      if self.equal_graphs(rg, result):
+      if equal_graphs(rg, result):
         return False
     qresult = QueryResult.QueryResult(result, nodemap)
     self.results.append(qresult)
     return True
 
-  """
-  Remove a edge (i -> j) with specified label
-  The argument 'key' is used as label
-  https://networkx.github.io/documentation/networkx-1.9/reference/generated/networkx.MultiGraph.remove_edge.html
-  """
-  """
-  @staticmethod
-  def remove_edge_from_label(g, i, j, label):
-    g.remove_edge(i, j, key=label)
-    assert label != ''
-    print g.edge[i][j], label
-    for k, v in g.edge[i][j].iteritems():
-      if v[LABEL] == label:
-        del g.edge[i][j][k]
-        # print g.edge[i][j]
-        return
-  """
   
   def process_neighbors(self, result, touched, nodemap, unproc):
     if unproc.number_of_edges() == 0:
-      if self.valid_result(result, self.query, nodemap):
+      if valid_result(result, self.query, nodemap):
         logging.debug("###### Found pattern " + str(self.count))
         if self.append_results(result, nodemap):
           self.count += 1
@@ -350,7 +333,7 @@ class GRayMultiple:
         if l != k:
           sum = 0
           for j in nodes:
-            if Condition.satisries_node(self.graph, j, ll, lp):
+            if Condition.satisfies_node(self.graph, j, ll, lp):
               sum += log(self.getRWR(j, i) / num)
           log_good += sum / rwrs[l]
       
@@ -417,7 +400,7 @@ class GRayMultiple:
     for m in self.graph.nodes():
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
-      # print m, self.graph_rwr[m]
+      # print "RWR:", m, self.graph_rwr[m]
   
   def getRWR(self, m, n):
     return self.graph_rwr[m][n]

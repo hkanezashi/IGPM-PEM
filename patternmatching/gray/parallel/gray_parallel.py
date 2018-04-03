@@ -112,6 +112,7 @@ class GRayParallel:
       nodemap[k] = i
       # result.add_node(i, label=il)
       result.add_node(i)
+      result.nodes[i][LABEL] = il
       for name, value in props.iteritems():
         result.nodes[i][name] = value
       
@@ -344,11 +345,11 @@ class GRayParallel:
         lp = Condition.get_node_props(self.query, l)  # Props of destination
         num = len(neighbors)
         if l != k:
-          sum = 0
+          log_sum = 0
           for j in nodes:
             if Condition.satisfies_node(self.graph, j, ll, lp):
-              sum += log(self.getRWR(j, i) / num)
-          log_good += sum / rwrs[l]
+              log_sum += log(self.getRWR(j, i) / num)
+          log_good += log_sum / rwrs[l]
       
       # logging.debug("#### SeedFinder#log_good: " + str(i) + " " + str(log_good) + " max_good: " + str(max_good))
       if log_good > max_good:

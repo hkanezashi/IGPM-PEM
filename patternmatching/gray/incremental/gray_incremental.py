@@ -6,26 +6,84 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 """
 
 import networkx as nx
-from math import log
 
-from patternmatching.gray import extract
+from patternmatching.gray import extract, rwr
+from patternmatching.gray.incremental import extract_incremental
+from patternmatching.gray.gray_multiple import GRayMultiple
+from patternmatching.gray.incremental.partial_execution_manager import PEM
 from patternmatching.query.Condition import *
 from patternmatching.query import QueryResult
 
 
-class GRayMultiple:
+def equal_graphs(g1, g2):
+  ns1 = set(g1.nodes())
+  ns2 = set(g2.nodes())
+  # logging.debug("Node 1: " + str(ns1))
+  # logging.debug("Node 2: " + str(ns2))
+  diff = ns1 ^ ns2
+  if diff:  ## Not empty (has differences)
+    return False
+  
+  es1 = set(g1.edges())
+  es2 = set(g2.edges())
+  # logging.debug("Edge 1: " + str(es1))
+  # logging.debug("Edge 2: " + str(es2))
+  diff = es1 ^ es2
+  if diff:
+    return False
+  
+  return True
+
+
+def valid_result(result, query, nodemap):
+  ## TODO: The number of vertices and edges of graphs with paths will vary
+  hasPath = False
+  etypes = nx.get_edge_attributes(query, TYPE)
+  for k, v in etypes.iteritems():
+    if v == PATH:
+      hasPath = True
+      break
+  
+  if not hasPath:
+    nr_num = result.number_of_nodes()
+    nq_num = query.number_of_nodes()
+    if nr_num != nq_num:
+      return False
+    
+    er_num = result.number_of_edges()
+    eq_num = query.number_of_edges()
+    if er_num != eq_num:
+      return False
+
+  # print nodemap
+  # print query.edges()
+  # print result.edges()
+  for qn, rn in nodemap.iteritems():
+    qd = query.degree(qn)
+    rd = result.degree(rn)
+    # print "degree:", qn, qd, rn, rd
+    if qd != rd:
+      return False
+  
+  return True
+
+
+class GRayIncremental(object, GRayMultiple):
   def __init__(self, graph, query, directed, cond):
-    self.graph = graph
-    self.graph_rwr = {}
-    self.query = query
-    self.directed = directed
-    self.results = [] ## QueryResult list
-    self.count = 0
-    self.extracts = {}
-    self.cond = cond ## Complex condition
+    super(GRayIncremental, self).__init__(graph, query, directed, cond)
+    self.pem = PEM(graph)
+  
+  def update_graph(self, nodes, edges):
+    self.graph.add_nodes(nodes)
+    self.graph.add_edges(edges)
+  
   
   def run_gray(self):
-    logging.info("---- Start G-Ray ----")
+    """
+    Run batch G-Ray algorithm
+    :return:
+    """
+    logging.info("---- Start Batch G-Ray ----")
     logging.info("#### Compute RWR")
     self.computeRWR()
     logging.info("#### Compute Extract")
@@ -58,6 +116,7 @@ class GRayMultiple:
       nodemap[k] = i
       # result.add_node(i, label=il)
       result.add_node(i)
+      result.nodes[i][LABEL] = il
       for name, value in props.iteritems():
         result.nodes[i][name] = value
       
@@ -66,70 +125,27 @@ class GRayMultiple:
       
       self.process_neighbors(result, touched, nodemap, unprocessed)
   
+  
+  def run_incremental_gray(self, nodes):
+    """
+    Run incremental G-Ray algorithm
+    :param nodes:
+    :return:
+    """
+    logging.info("---- Start Incremental G-Ray ----")
+    logging.info("#### Compute RWR")
+    self.compute_part_RWR(nodes)
+    logging.info("#### Compute Extract")
+    ext = extract_incremental.Extract(self.graph, self.graph_rwr)
+    ext.computeExtract_incremental(nodes)
+    
+  
   def getExtract(self, label):
     if not label in self.extracts:
       ext = extract.Extract(self.graph, self.graph_rwr, label)
       ext.computeExtract()
       self.extracts[label] = ext
     return self.extracts[label]
-  
-  def equal_graphs(self, g1, g2):
-    ns1 = set(g1.nodes())
-    ns2 = set(g2.nodes())
-    # logging.debug("Node 1: " + str(ns1))
-    # logging.debug("Node 2: " + str(ns2))
-    diff = ns1 ^ ns2
-    if diff:  ## Not empty (has differences)
-      return False
-    
-    es1 = set(g1.edges())
-    es2 = set(g2.edges())
-    # logging.debug("Edge 1: " + str(es1))
-    # logging.debug("Edge 2: " + str(es2))
-    diff = es1 ^ es2
-    if diff:
-      return False
-    
-    return True
-
-  def valid_result(self, result, query, nodemap):
-    ## TODO: The number of vertices and edges of graphs with paths will vary
-    hasPath = False
-    etypes = nx.get_edge_attributes(query, TYPE)
-    for k, v in etypes.iteritems():
-      if v == PATH:
-        hasPath = True
-        break
-    
-    if not hasPath:
-      nr_num = result.number_of_nodes()
-      nq_num = query.number_of_nodes()
-      if nr_num != nq_num:
-        return False
-      
-      er_num = result.number_of_edges()
-      eq_num = query.number_of_edges()
-      if er_num != eq_num:
-        return False
-
-    # print nodemap
-    # print query.edges()
-    # print result.edges()
-    for qn, rn in nodemap.iteritems():
-      qd = query.degree(qn)
-      rd = result.degree(rn)
-      # print "degree:", qn, qd, rn, rd
-      if qd != rd:
-        return False
-    
-    """
-    r_deg = sorted(result.degree(result.nodes()).values())
-    q_deg = sorted(query.degree(query.nodes()).values())
-    # print r_deg, q_deg
-    if r_deg != q_deg:
-      return False
-    """
-    return True
 
   def append_results(self, result, nodemap):
     if self.cond is not None and not self.cond.eval(result, nodemap):
@@ -137,33 +153,16 @@ class GRayMultiple:
     
     for r in self.results:
       rg = r.get_graph()
-      if self.equal_graphs(rg, result):
+      if equal_graphs(rg, result):
         return False
     qresult = QueryResult.QueryResult(result, nodemap)
     self.results.append(qresult)
     return True
 
-  """
-  Remove a edge (i -> j) with specified label
-  The argument 'key' is used as label
-  https://networkx.github.io/documentation/networkx-1.9/reference/generated/networkx.MultiGraph.remove_edge.html
-  """
-  """
-  @staticmethod
-  def remove_edge_from_label(g, i, j, label):
-    g.remove_edge(i, j, key=label)
-    assert label != ''
-    print g.edge[i][j], label
-    for k, v in g.edge[i][j].iteritems():
-      if v[LABEL] == label:
-        del g.edge[i][j][k]
-        # print g.edge[i][j]
-        return
-  """
   
   def process_neighbors(self, result, touched, nodemap, unproc):
     if unproc.number_of_edges() == 0:
-      if self.valid_result(result, self.query, nodemap):
+      if valid_result(result, self.query, nodemap):
         logging.debug("###### Found pattern " + str(self.count))
         if self.append_results(result, nodemap):
           self.count += 1
@@ -174,6 +173,7 @@ class GRayMultiple:
     
     k = None
     l = None
+    kl = None
     reversed_edge = False
     for k_ in touched:
       kl = Condition.get_node_label(self.query, k_)
@@ -315,108 +315,13 @@ class GRayMultiple:
           self.process_neighbors(result_, touched_, nodemap_, unproc_)
     #### Find a path or edge (End)
     
-  ## List of tuple (extracted graph and node map)
-  def get_results(self):
-    return self.results
-  
-  def seed_finder(self, k):
-    logging.debug("## Seed finder from: " + str(k))
-    kl = Condition.get_node_label(self.query, k)  # Label of source
-    kp = Condition.get_node_props(self.query, k)  # Props of source
-    rwrs = {}
-    
-    for l in self.query.neighbors(k):
-      if l != k:
-        rwrs[l] = self.rwr(self.query, l, k)
-    # logging.debug("#### SeedFinder#RWR: " + str(rwrs))
-    
-    max_good = float('-inf')
-    nodes = self.graph.nodes()
-    seeds = []
-    
-    for i in nodes:
-      ## Exclude node which is already extracted
-      #if Condition.get_node_label(self.graph, i) != kl:
-      if not Condition.satisfies_node(self.graph, i, kl, kp):
-        continue
-      
-      log_good = 0
-      neighbors = self.query.neighbors(k)
-      for l in neighbors:
-        ll = Condition.get_node_label(self.query, l)  # Label of destination
-        lp = Condition.get_node_props(self.query, l)  # Props of destination
-        num = len(neighbors)
-        if l != k:
-          sum = 0
-          for j in nodes:
-            if Condition.satisries_node(self.graph, j, ll, lp):
-              sum += log(self.getRWR(j, i) / num)
-          log_good += sum / rwrs[l]
-      
-      # logging.debug("#### SeedFinder#log_good: " + str(i) + " " + str(log_good) + " max_good: " + str(max_good))
-      if log_good > max_good:
-        # logging.debug("#### Found max log_good")
-        max_good = log_good
-        seeds = [i]  ## Reset seed candidates
-      elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
-        # logging.debug("#### Found max log_good")
-        seeds.append(i)  ## Add seed candidates
-      
-    logging.debug("SeedFinder#return: " + " ".join([str(seed) for seed in seeds]) + "!")
-    return seeds
-  
-  def neighbor_expander(self, i, k, l, result, reversed_edge):
-    kl = Condition.get_node_label(self.query, k)  # Label of source
-    ll = Condition.get_node_label(self.query, l)  # Label of destination
-    
-    logging.debug("## Neighbor expander from: " + str(i) + "[" + str(k) + "]")
-    max_good = float('-inf')
-    candidates_j = Condition.filter_nodes(self.graph, ll, {})
-    # candidates_i = [i_ for i_ in self.graph.nodes() if self.get_node_label(self.graph, i_) == kl]
-    # candidates_j = [j_ for j_ in self.graph.nodes() if self.get_node_label(self.graph, j_) == ll]
-    j = []
-    # print "candidates", candidates_j
-    # print "result nodes", result.nodes()
-    
-    for j_ in candidates_j:
-      if j_ in result.nodes() or j_ == i:
-        continue
-      
-      if reversed_edge:
-        log_good = log(self.getRWR(j_, i) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
-        # logging.debug("#### NeighborExpander#log_good: " + str(i) + " <- " + str(j_) + " " + str(log_good))
-      else:
-        log_good = log(self.getRWR(i, j_) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
-        # logging.debug("#### NeighborExpander#log_good: " + str(i) + " -> " + str(j_) + " " + str(log_good))
-      
-      if log_good > max_good:
-        j = [j_]
-        max_good = log_good
-      elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
-        j.append(j_)
-      
-    logging.debug("## NeighborExpander#return: " + " ".join([str(j_) for j_ in j]) + "!")
-    return j
-  
-  
-  def bridge(self, i, j, label=None):
-    if label is None:
-      label = ''
-    return self.getExtract(label).getPath(i, j)
-  
-  #def bridge_label(self, i, j, label):
-  #  return self.extracts[label].getPath(i, j)
-
-  
-  
-  def computeRWR(self):
+  def compute_part_RWR(self, nodes):
     RESTART_PROB = 0.7
     OG_PROB = 0.1
-    rw = RWR.RWR(self.graph)
-    for m in self.graph.nodes():
+    rw = rwr.RWR(self.graph)
+    for m in nodes:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
-      # print m, self.graph_rwr[m]
   
   def getRWR(self, m, n):
     return self.graph_rwr[m][n]
@@ -428,7 +333,7 @@ class GRayMultiple:
   def rwr(g, m, n):  # Random walk with restart m -> n in g
     RESTART_PROB = 0.7
     OG_PROB = 0.1
-    rw = RWR.RWR(g)
+    rw = rwr.RWR(g)
     results = rw.run_exp(m, RESTART_PROB, OG_PROB)
     logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
     return results[n]

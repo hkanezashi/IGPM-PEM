@@ -3,11 +3,14 @@ import json
 from networkx.readwrite import json_graph
 import sys
 
-import GRayMultiple
+import matplotlib.pylab as plt
+
+import gray_multiple
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
 import aggregator
+
 
 ### Label -> matplotlib color string
 label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
@@ -15,8 +18,6 @@ label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
 
 def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
   
-  if plot_graph:
-    import matplotlib.pylab as plt
   
   """
   ## InputGraph (args[1]): edge list file name
@@ -159,13 +160,16 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
     plt.close()
   
   
-  grm = GRayMultiple.GRayMultiple(graph, query, directed, cond)
+  ## Run G-Ray
+  grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
   grm.run_gray()
   results = grm.get_results()
   print "Found " + str(len(results)) + " patterns."
   # print "Extract: " + str(grm.getExtract())
   
+  
   if plot_graph:
+    # Export pattern graphs to PNG files
     num = 0
     for qresult in results:
       result = qresult.get_graph()
@@ -211,7 +215,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
 if __name__ == '__main__':
   args = sys.argv
   if len(args) < 2:
-    print "Usage: %s [GMLFile] [QueryArgs...]" % args[0]
+    print "Usage: %s [GraphJSON] [QueryArgs...]" % args[0]
     sys.exit(1)
   gfile = args[1]
   qargs = args[2:]
