@@ -1,0 +1,27 @@
+{
+  "directed": false,
+  "graph": {},
+  "nodes": [
+    {"id": 0, "label": "cyan"},
+    {"id": 1, "label": "magenta"},
+    {"id": 2, "label": "cyan"},
+    {"id": 3, "label": "magenta"},
+    {"id": 4, "label": "cyan"},
+    {"id": 5, "label": "magenta"},
+    {"id": 6, "label": "cyan"}
+  ],
+  "links": [
+    {"source": 0, "target": 1, "label": "yes"},
+    {"source": 0, "target": 1, "label": "no"},
+    {"source": 0, "target": 3, "label": "yes"},
+    {"source": 0, "target": 4, "label": "yes"},
+    {"source": 1, "target": 3, "label": "yes"},
+    {"source": 2, "target": 3, "label": "yes"},
+    {"source": 2, "target": 4, "label": "yes"},
+    {"source": 2, "target": 5, "label": "yes"},
+    {"source": 4, "target": 5, "label": "yes"},
+    {"source": 4, "target": 6, "label": "yes"},
+    {"source": 5, "target": 6, "label": "yes"}
+  ],
+  "multigraph": true
+}

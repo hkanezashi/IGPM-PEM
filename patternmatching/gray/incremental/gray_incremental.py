@@ -8,7 +8,7 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 import networkx as nx
 
 from patternmatching.gray import extract, rwr
-from patternmatching.gray.incremental import extract_incremental
+from patternmatching.gray.incremental.extract_incremental import Extract
 from patternmatching.gray.gray_multiple import GRayMultiple
 from patternmatching.gray.incremental.partial_execution_manager import PEM
 from patternmatching.query.Condition import *
@@ -68,7 +68,7 @@ def valid_result(result, query, nodemap):
   return True
 
 
-class GRayIncremental(object, GRayMultiple):
+class GRayIncremental(GRayMultiple, object):
   def __init__(self, graph, query, directed, cond):
     super(GRayIncremental, self).__init__(graph, query, directed, cond)
     self.pem = PEM(graph)
@@ -87,58 +87,30 @@ class GRayIncremental(object, GRayMultiple):
     logging.info("#### Compute RWR")
     self.computeRWR()
     logging.info("#### Compute Extract")
-    ext = extract.Extract(self.graph, self.graph_rwr)
-    ext.computeExtract()
+    ext = Extract(self.graph, self.graph_rwr)
+    ext.computeExtract_batch()
     self.extracts[''] = ext
+    self.process_gray()
 
-    logging.debug("#### Find Seeds")
-    k = list(self.query.nodes())[0]
-    kl = Condition.get_node_label(self.query, k)
-    kp = Condition.get_node_props(self.query, k)
-    seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidates
-    # seeds = [s for s in self.graph.nodes() if self.get_node_label(self.graph, s) == kl]  # Find all candidates
-    if not seeds:  ## No seed candidates
-      logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
-      return
-    
-    for i in seeds:
-      logging.debug("#### Choose Seed: " + str(i))
-      result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
-      # self.results.append(result)
-      
-      touched = []
-      nodemap = {}  ## Query Vertex -> Graph Vertex
-      unprocessed = self.query.copy()
-      # unprocessed = nx.MultiDiGraph(self.query) if self.directed else nx.MultiGraph(self.query)
-      
-      il = Condition.get_node_label(self.graph, i)
-      props = Condition.get_node_props(self.graph, i)
-      nodemap[k] = i
-      # result.add_node(i, label=il)
-      result.add_node(i)
-      result.nodes[i][LABEL] = il
-      for name, value in props.iteritems():
-        result.nodes[i][name] = value
-      
-      # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
-      touched.append(k)
-      
-      self.process_neighbors(result, touched, nodemap, unprocessed)
-  
-  
-  def run_incremental_gray(self, nodes):
+
+  def run_incremental_gray(self, add_edges):
     """
     Run incremental G-Ray algorithm
-    :param nodes:
+    :param add_edges: Added edges
     :return:
     """
+    nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])  # Affected nodes
+    self.graph.add_edges_from(add_edges)
+
     logging.info("---- Start Incremental G-Ray ----")
     logging.info("#### Compute RWR")
     self.compute_part_RWR(nodes)
     logging.info("#### Compute Extract")
-    ext = extract_incremental.Extract(self.graph, self.graph_rwr)
+    ext = self.extracts[''] # Extract(self.graph, self.graph_rwr)
     ext.computeExtract_incremental(nodes)
-    
+    self.extracts[''] = ext
+    self.process_gray()
+
   
   def getExtract(self, label):
     if not label in self.extracts:

@@ -1,4 +1,4 @@
-community
+python-louvain
 scikit-learn
 numpy
 pyparsing

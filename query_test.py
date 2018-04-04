@@ -1,6 +1,6 @@
 import logging
 
-import query_call
+import patternmatching.gray.query_call
 
 ### Label -> matplotlib color string
 label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
@@ -59,7 +59,7 @@ for tc in test_cases:
   print "Query Options:", qstr
   qargs = qstr.split(" ")
   logging.basicConfig(level=logging.WARNING)
-  results = query_call.run_query(gfile, qargs)
+  results = patternmatching.gray.query_call.run_query(gfile, qargs)
   SUCCESS = True
   
   num_results = len(results)

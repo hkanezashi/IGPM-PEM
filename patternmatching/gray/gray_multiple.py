@@ -81,16 +81,8 @@ class GRayMultiple:
     self.count = 0
     self.extracts = {}
     self.cond = cond ## Complex condition
-  
-  def run_gray(self):
-    logging.info("---- Start G-Ray ----")
-    logging.info("#### Compute RWR")
-    self.computeRWR()
-    logging.info("#### Compute Extract")
-    ext = extract.Extract(self.graph, self.graph_rwr)
-    ext.computeExtract()
-    self.extracts[''] = ext
 
+  def process_gray(self):
     logging.debug("#### Find Seeds")
     k = list(self.query.nodes())[0]
     kl = Condition.get_node_label(self.query, k)
@@ -100,17 +92,17 @@ class GRayMultiple:
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
-    
+
     for i in seeds:
       logging.debug("#### Choose Seed: " + str(i))
       result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
       # self.results.append(result)
-      
+
       touched = []
       nodemap = {}  ## Query Vertex -> Graph Vertex
       unprocessed = self.query.copy()
       # unprocessed = nx.MultiDiGraph(self.query) if self.directed else nx.MultiGraph(self.query)
-      
+
       il = Condition.get_node_label(self.graph, i)
       props = Condition.get_node_props(self.graph, i)
       nodemap[k] = i
@@ -119,11 +111,23 @@ class GRayMultiple:
       result.nodes[i][LABEL] = il
       for name, value in props.iteritems():
         result.nodes[i][name] = value
-      
+
       # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
       touched.append(k)
-      
+
       self.process_neighbors(result, touched, nodemap, unprocessed)
+
+
+  def run_gray(self):
+    logging.info("---- Start G-Ray ----")
+    logging.info("#### Compute RWR")
+    self.computeRWR()
+    logging.info("#### Compute Extract")
+    ext = extract.Extract(self.graph, self.graph_rwr)
+    ext.computeExtract()
+    self.extracts[''] = ext
+    self.process_gray()
+
   
   def getExtract(self, label):
     if not label in self.extracts:
