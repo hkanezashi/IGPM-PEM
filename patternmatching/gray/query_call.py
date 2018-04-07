@@ -2,8 +2,8 @@ import networkx as nx
 import json
 from networkx.readwrite import json_graph
 import sys
+import time
 
-import matplotlib.pylab as plt
 
 import gray_multiple
 from patternmatching.query.Condition import *
@@ -24,6 +24,13 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
   # graph = nx.read_edgelist(args[1], data=[('label', str)])
   graph = nx.MultiDiGraph(nx.read_gml(gfile))
   """
+  try:
+    import matplotlib.pylab as plt
+  except RuntimeError:
+    print("Matplotlib cannot be imported.")
+    plt = None
+    plot_graph = False
+    show_graph = False
   
   ## Query (args[2:]): query graph
   vsymbols = set()  ## Vertices (symbol)
@@ -161,10 +168,13 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
   
   
   ## Run G-Ray
+  st = time.time()
   grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
   grm.run_gray()
   results = grm.get_results()
+  ed = time.time()
   print "Found " + str(len(results)) + " patterns."
+  print "Elapsed time [s]: " + str(ed - st)
   # print "Extract: " + str(grm.getExtract())
   
   

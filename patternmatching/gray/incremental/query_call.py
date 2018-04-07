@@ -2,8 +2,7 @@ import networkx as nx
 import json
 from networkx.readwrite import json_graph
 import sys
-
-import matplotlib.pylab as plt
+import time
 
 import gray_incremental
 from patternmatching.query.Condition import *
@@ -26,6 +25,15 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   :param max_steps: Number of steps (default is 100)
   :return:
   """
+  try:
+    import matplotlib.pylab as plt
+  except RuntimeError:
+    print("Matplotlib cannot be imported.")
+    plt = None
+    plot_graph = False
+    show_graph = False
+  
+  
   print("Graph JSON file: %s" % graph_json)
   print("Query args: %s" % str(query_args))
   print("Plot graph: %s" % str(plot_graph))
@@ -176,7 +184,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
     return inv
 
   add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
-  print add_timestamp_edges
+  # print add_timestamp_edges
 
 
   ## Initialize base graph
@@ -192,18 +200,22 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
 
   ## Run base G-Ray
   print("Run base G-Ray")
+  st = time.time()
   grm = gray_incremental.GRayIncremental(init_graph, query, directed, cond)
   grm.run_gray()
   results = grm.get_results()
-  print("Found %d patterns at time %d" % (len(results), 0))
+  ed = time.time()
+  print("Found %d patterns at time %d: %f[s]" % (len(results), 0, (ed - st)))
 
   ## Run Incremental G-Ray
   for t in range(1, max_steps):
     print("Run incremental G-Ray: %d" % t)
+    st = time.time()
     add_edges = add_timestamp_edges[t]
     grm.run_incremental_gray(add_edges)
     results = grm.get_results()
-    print("Found %d patterns at time %d" % (len(results), t))
+    ed = time.time()
+    print("Found %d patterns at time %d: %f[s]" % (len(results), t, (ed - st)))
     # print "Extract: " + str(grm.getExtract())
 
 
