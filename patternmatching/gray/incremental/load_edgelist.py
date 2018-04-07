@@ -5,12 +5,15 @@ import json
 
 def load_edgelist_time(in_fname, out_fname):
   """Load edgelist file and output NetworkX graph with generated timestamp as JSON format
+  Usage:
+  > from patternmatching.gray.incremental.load_edgelist import load_edgelist_time
+  > load_edgelist_time("data/Congress/edges", "data/Congress.json")
   
   :param in_fname: Edgelist file name
   :param out_fname: JSON file name
   :return:
   """
-  tm_size = 100
+  tm_size = 1000
   graph = nx.Graph()
   
   rf = open(in_fname, "r")
@@ -39,6 +42,16 @@ def load_edgelist_time(in_fname, out_fname):
 
 
 def filter_time(in_json, out_json, limit):
+  """
+  Usage:
+  > from patternmatching.gray.incremental.load_edgelist import filter_time
+  > filter_time("data/Congress.json", "data/Congress1.json", 10)
+  
+  :param in_json: Input graph JSON
+  :param out_json: Output graph JSON
+  :param limit: Upper limit of steps
+  :return:
+  """
   
   with open(in_json, "r") as rf:
     data = json.load(rf)

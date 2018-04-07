@@ -103,6 +103,7 @@ class GRayIncremental(GRayMultiple, object):
     self.graph.add_edges_from(add_edges)
 
     logging.info("---- Start Incremental G-Ray ----")
+    logging.info("Number of re-computation nodes: %d" % len(nodes))
     logging.info("#### Compute RWR")
     self.compute_part_RWR(nodes)
     logging.info("#### Compute Extract")

@@ -169,9 +169,21 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
   
   ## Run G-Ray
   st = time.time()
+
+  import cProfile
+  pr = cProfile.Profile()
+  pr.enable()
+  
   grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
   grm.run_gray()
   results = grm.get_results()
+
+  pr.disable()
+  import pstats
+  stats = pstats.Stats(pr)
+  stats.sort_stats("tottime")
+  stats.print_stats()
+  
   ed = time.time()
   print "Found " + str(len(results)) + " patterns."
   print "Elapsed time [s]: " + str(ed - st)
