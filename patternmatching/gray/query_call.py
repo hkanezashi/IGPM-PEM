@@ -196,7 +196,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
   if plot_graph:
     # Export pattern graphs to PNG files
     num = 0
-    for qresult in results:
+    for qresult in results.values():
       result = qresult.get_graph()
       colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems() if result.has_node(k)]
       posr = {n: posg[n] for n in result.nodes()}

@@ -8,12 +8,13 @@ def load_edgelist_time(in_fname, out_fname):
   Usage:
   > from patternmatching.gray.incremental.load_edgelist import load_edgelist_time
   > load_edgelist_time("data/Congress/edges", "data/Congress.json")
+  > load_edgelist_time("data/imdb/edges", "data/IMDb.json")
   
   :param in_fname: Edgelist file name
   :param out_fname: JSON file name
   :return:
   """
-  tm_size = 40
+  tm_size = 100
   graph = nx.Graph()
   
   rf = open(in_fname, "r")
@@ -46,6 +47,7 @@ def filter_time(in_json, out_json, limit):
   Usage:
   > from patternmatching.gray.incremental.load_edgelist import filter_time
   > filter_time("data/Congress.json", "data/Congress1.json", 10)
+  > filter_time("data/IMDb.json", "data/IMDb1.json", 10)
   
   :param in_json: Input graph JSON
   :param out_json: Output graph JSON

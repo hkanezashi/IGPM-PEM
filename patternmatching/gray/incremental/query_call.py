@@ -239,10 +239,11 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
 
 
   results = grm.get_results()
+  patterns = results.values()
   if plot_graph:
     # Export pattern graphs to PNG files
     num = 0
-    for qresult in results:
+    for qresult in patterns:
       result = qresult.get_graph()
       colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems() if result.has_node(k)]
       posr = {n: posg[n] for n in result.nodes()}
@@ -260,15 +261,15 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   if groupby:
     # gr = Grouping.Grouping(groupby)
     gr = Grouping.Grouping()
-    groups = gr.groupBy(results)
+    groups = gr.groupBy(patterns)
     for k, v in groups:
       print k, len(v)
   
   ## OrderBy
   if orderby:
     od = Ordering.Ordering(orderby)
-    ordered = od.orderBy(results)
-    for result in results:
+    ordered = od.orderBy(patterns)
+    for result in patterns:
       g = result.get_graph()
       print g.nodes(), g.edges()
   
@@ -276,10 +277,10 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   if aggregates:
     for aggregate in aggregates:
       ag = Aggregator(aggregate)
-      ret = ag.get_result(results)
+      ret = ag.get_result(patterns)
       print aggregate, ret
   
-  return results
+  return patterns
 
 
 

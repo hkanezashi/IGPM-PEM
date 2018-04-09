@@ -77,7 +77,8 @@ class GRayMultiple:
     self.graph_rwr = {}
     self.query = query
     self.directed = directed
-    self.results = [] ## QueryResult list
+    self.results = dict() ## Seed ID, QueryResult
+    self.current_seed = None  # Current seed ID
     self.count = 0
     self.extracts = {}
     self.cond = cond ## Complex condition
@@ -95,8 +96,8 @@ class GRayMultiple:
 
     for i in seeds:
       logging.debug("#### Choose Seed: " + str(i))
+      self.current_seed = i
       result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
-      # self.results.append(result)
 
       touched = []
       nodemap = {}  ## Query Vertex -> Graph Vertex
@@ -106,7 +107,6 @@ class GRayMultiple:
       il = Condition.get_node_label(self.graph, i)
       props = Condition.get_node_props(self.graph, i)
       nodemap[k] = i
-      # result.add_node(i, label=il)
       result.add_node(i)
       result.nodes[i][LABEL] = il
       for name, value in props.iteritems():
@@ -140,14 +140,21 @@ class GRayMultiple:
     if self.cond is not None and not self.cond.eval(result, nodemap):
       return False  ## Not satisfied with complex condition
     
-    for r in self.results:
+    ## Remove duplicates
+    seed_nodes = result.nodes()
+    for n in seed_nodes:
+      if not n in self.results:
+        continue
+      r = self.results[n]  # Result pattern contains same nodes
       rg = r.get_graph()
       if equal_graphs(rg, result):
         return False
+    
+    ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)
-    self.results.append(qresult)
+    self.results[self.current_seed] = qresult  # Register QueryResult of current seed
 
-    print("Result nodes:" + str(result.nodes()))
+    logging.debug("Result nodes:" + str(result.nodes()))
     return True
 
   
@@ -165,6 +172,7 @@ class GRayMultiple:
     k = None
     l = None
     reversed_edge = False
+    kl = None
     for k_ in touched:
       kl = Condition.get_node_label(self.query, k_)
       kp = Condition.get_node_props(self.query, k_)

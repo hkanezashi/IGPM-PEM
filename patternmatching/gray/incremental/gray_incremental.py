@@ -123,15 +123,22 @@ class GRayIncremental(GRayMultiple, object):
   def append_results(self, result, nodemap):
     if self.cond is not None and not self.cond.eval(result, nodemap):
       return False  ## Not satisfied with complex condition
-    
-    for r in self.results:
+
+    ## Remove duplicates
+    seed_nodes = result.nodes()
+    for n in seed_nodes:
+      if not n in self.results:
+        continue
+      r = self.results[n]  # Result pattern contains same nodes
       rg = r.get_graph()
       if equal_graphs(rg, result):
         return False
+
+    ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)
-    self.results.append(qresult)
+    self.results[self.current_seed] = qresult  # Register QueryResult of current seed
     
-    print("Result nodes:" + str(result.nodes()))
+    logging.debug("Result nodes:" + str(result.nodes()))
     return True
 
   
