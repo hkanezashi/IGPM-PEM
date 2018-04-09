@@ -146,6 +146,8 @@ class GRayMultiple:
         return False
     qresult = QueryResult.QueryResult(result, nodemap)
     self.results.append(qresult)
+
+    print("Result nodes:" + str(result.nodes()))
     return True
 
   

@@ -5,7 +5,7 @@ import patternmatching.gray.query_call
 ### Label -> matplotlib color string
 label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 test_cases = [
   ("sample/test1.json",    # Case 1-1

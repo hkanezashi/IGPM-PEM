@@ -13,7 +13,7 @@ def load_edgelist_time(in_fname, out_fname):
   :param out_fname: JSON file name
   :return:
   """
-  tm_size = 1000
+  tm_size = 40
   graph = nx.Graph()
   
   rf = open(in_fname, "r")
@@ -59,6 +59,7 @@ def filter_time(in_json, out_json, limit):
   
   # print type(graph1)
   edges = [e for e in graph1.edges(data=True) if e[2]["add"] < limit]
+  print("Number of edges: %d" % len(edges))
   # print edges[0]
   graph2 = nx.Graph()
   

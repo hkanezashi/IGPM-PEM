@@ -13,7 +13,9 @@ from patternmatching.gray.aggregator import Aggregator
 
 ### Label -> matplotlib color string
 label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
-  
+
+enable_profile = False
+
 
 def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_steps=100):
   """Parse pattern matching query command and options and execute incremental G-Ray
@@ -181,6 +183,8 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
     for k, v in d.iteritems():
       keys = inv.setdefault(v, [])
       keys.append(k)
+    # for k, v in inv.iteritems():
+    #   print k, len(v)
     return inv
 
   add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
@@ -212,16 +216,17 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
     print("Run incremental G-Ray: %d" % t)
     st = time.time()
     
-    if t == max_steps - 1:
+    if enable_profile and t == max_steps - 1:
       import cProfile
       pr = cProfile.Profile()
       pr.enable()
     
     add_edges = add_timestamp_edges[t]
+    print("Add edges: %d" % len(add_edges))
     grm.run_incremental_gray(add_edges)
     results = grm.get_results()
     
-    if t == max_steps - 1:
+    if enable_profile and t == max_steps - 1:
       pr.disable()
       import pstats
       stats = pstats.Stats(pr)
