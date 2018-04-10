@@ -240,6 +240,10 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
 
   results = grm.get_results()
   patterns = results.values()
+  
+  # for pattern in patterns:
+  #   print pattern.get_graph().edges()
+  
   if plot_graph:
     # Export pattern graphs to PNG files
     num = 0

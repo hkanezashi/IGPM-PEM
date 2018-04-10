@@ -5,7 +5,10 @@ Tong, Hanghang, et al. "Fast best-effort pattern matching in large attributed gr
 Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2007.
 """
 
+import time
 import networkx as nx
+import cProfile
+import pstats
 
 from patternmatching.gray import extract, rwr
 from patternmatching.gray.incremental.extract_incremental import Extract
@@ -24,13 +27,19 @@ def equal_graphs(g1, g2):
   if diff:  ## Not empty (has differences)
     return False
   
+  """
   es1 = set(g1.edges())
   es2 = set(g2.edges())
-  # logging.debug("Edge 1: " + str(es1))
-  # logging.debug("Edge 2: " + str(es2))
   diff = es1 ^ es2
   if diff:
     return False
+  """
+  for n in ns1:
+    ne1 = g1[n]
+    ne2 = g2[n]
+    # print n, ne1, ne2
+    if ne1 != ne2:
+      return False
   
   return True
 
@@ -93,6 +102,43 @@ class GRayIncremental(GRayMultiple, object):
     self.process_gray()
 
 
+  def process_incremental_gray(self, nodes):
+    logging.debug("#### Find Seeds")
+    k = list(self.query.nodes())[0]
+    kl = Condition.get_node_label(self.query, k)
+    kp = Condition.get_node_props(self.query, k)
+    seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidates
+    seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
+    
+    if not seeds:  ## No seed candidates
+      logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
+      return
+  
+    for i in seeds:
+      logging.debug("#### Choose Seed: " + str(i))
+      self.current_seed = i
+      result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
+    
+      touched = []
+      nodemap = {}  ## Query Vertex -> Graph Vertex
+      unprocessed = self.query.copy()
+      # unprocessed = nx.MultiDiGraph(self.query) if self.directed else nx.MultiGraph(self.query)
+    
+      il = Condition.get_node_label(self.graph, i)
+      props = Condition.get_node_props(self.graph, i)
+      nodemap[k] = i
+      result.add_node(i)
+      result.nodes[i][LABEL] = il
+      for name, value in props.iteritems():
+        result.nodes[i][name] = value
+    
+      # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
+      touched.append(k)
+    
+      self.process_neighbors(result, touched, nodemap, unprocessed)
+  
+  
+
   def run_incremental_gray(self, add_edges):
     """
     Run incremental G-Ray algorithm
@@ -104,13 +150,29 @@ class GRayIncremental(GRayMultiple, object):
 
     logging.info("---- Start Incremental G-Ray ----")
     logging.info("Number of re-computation nodes: %d" % len(nodes))
-    logging.info("#### Compute RWR")
+    
+    st = time.time()
     self.compute_part_RWR(nodes)
-    logging.info("#### Compute Extract")
-    ext = self.extracts[''] # Extract(self.graph, self.graph_rwr)
+    ed = time.time()
+    logging.info("#### Compute RWR: %f [s]" % (ed - st))
+    
+    st = time.time()
+    ext = self.extracts['']  # Extract(self.graph, self.graph_rwr)
     ext.computeExtract_incremental(nodes)
     self.extracts[''] = ext
-    self.process_gray()
+    ed = time.time()
+    logging.info("#### Compute Extract: %f [s]" % (ed - st))
+
+    # pr = cProfile.Profile()
+    # pr.enable()
+    st = time.time()
+    self.process_incremental_gray(nodes)
+    ed = time.time()
+    logging.info("#### Compute G-Ray: %f [s]" % (ed - st))
+    # pr.disable()
+    # stats = pstats.Stats(pr)
+    # stats.sort_stats('tottime')
+    # stats.print_stats()
 
   
   def getExtract(self, label):
@@ -125,6 +187,11 @@ class GRayIncremental(GRayMultiple, object):
       return False  ## Not satisfied with complex condition
 
     ## Remove duplicates
+    for r in self.results.values():
+      rg = r.get_graph()
+      if equal_graphs(rg, result):
+        return False
+    """
     seed_nodes = result.nodes()
     for n in seed_nodes:
       if not n in self.results:
@@ -133,7 +200,8 @@ class GRayIncremental(GRayMultiple, object):
       rg = r.get_graph()
       if equal_graphs(rg, result):
         return False
-
+    """
+    
     ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)
     self.results[self.current_seed] = qresult  # Register QueryResult of current seed

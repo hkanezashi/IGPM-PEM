@@ -192,6 +192,9 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
   print "Elapsed time [s]: " + str(ed - st)
   # print "Extract: " + str(grm.getExtract())
   
+  # for pattern in results.values():
+  #   print pattern.get_graph().edges()
+  
   
   if plot_graph:
     # Export pattern graphs to PNG files

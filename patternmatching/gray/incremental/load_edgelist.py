@@ -14,7 +14,7 @@ def load_edgelist_time(in_fname, out_fname):
   :param out_fname: JSON file name
   :return:
   """
-  tm_size = 100
+  tm_size = 200
   graph = nx.Graph()
   
   rf = open(in_fname, "r")

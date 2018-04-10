@@ -7,6 +7,9 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 
 import networkx as nx
 from math import log
+import time
+import cProfile
+import pstats
 
 import rwr
 import extract
@@ -23,13 +26,19 @@ def equal_graphs(g1, g2):
   if diff:  ## Not empty (has differences)
     return False
   
+  """
   es1 = set(g1.edges())
   es2 = set(g2.edges())
-  # logging.debug("Edge 1: " + str(es1))
-  # logging.debug("Edge 2: " + str(es2))
   diff = es1 ^ es2
   if diff:
     return False
+  """
+  for n in ns1:
+    ne1 = g1[n]
+    ne2 = g2[n]
+    # print n, ne1, ne2
+    if ne1 != ne2:
+      return False
   
   return True
 
@@ -120,13 +129,28 @@ class GRayMultiple:
 
   def run_gray(self):
     logging.info("---- Start G-Ray ----")
-    logging.info("#### Compute RWR")
+    st = time.time()
     self.computeRWR()
-    logging.info("#### Compute Extract")
+    ed = time.time()
+    logging.info("#### Compute RWR: %f [s]" % (ed - st))
+
+    st = time.time()
     ext = extract.Extract(self.graph, self.graph_rwr)
     ext.computeExtract()
     self.extracts[''] = ext
+    ed = time.time()
+    logging.info("#### Compute Extract: %f [s]" % (ed - st))
+    
+    # pr = cProfile.Profile()
+    # pr.enable()
+    st = time.time()
     self.process_gray()
+    ed = time.time()
+    logging.info("#### Compute G-Ray: %f [s]" % (ed - st))
+    # pr.disable()
+    # stats = pstats.Stats(pr)
+    # stats.sort_stats('tottime')
+    # stats.print_stats()
 
   
   def getExtract(self, label):
@@ -141,6 +165,11 @@ class GRayMultiple:
       return False  ## Not satisfied with complex condition
     
     ## Remove duplicates
+    for r in self.results.values():
+      rg = r.get_graph()
+      if equal_graphs(rg, result):
+        return False
+    """
     seed_nodes = result.nodes()
     for n in seed_nodes:
       if not n in self.results:
@@ -149,6 +178,7 @@ class GRayMultiple:
       rg = r.get_graph()
       if equal_graphs(rg, result):
         return False
+    """
     
     ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)
