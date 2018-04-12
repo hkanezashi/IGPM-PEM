@@ -18,4 +18,4 @@ logging.basicConfig(level=logging.INFO)
 
 fname = "./data/IMDb1.json"
 qargs = "--vertex a b c --edge x:a:b y:b:c z:c:a --vertexlabel a:cyan b:cyan c:cyan".split(" ")
-query_call.run_query(fname, qargs, False, False)
+query_call.run_query_step(fname, qargs, 10)

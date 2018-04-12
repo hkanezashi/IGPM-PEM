@@ -6,4 +6,5 @@ data/
 *.pyc
 *.gml
 *.png
+*.log
 
