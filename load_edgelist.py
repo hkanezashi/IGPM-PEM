@@ -3,7 +3,7 @@ import csv
 from networkx.readwrite import json_graph
 import json
 
-def load_edgelist_time(in_fname, out_fname, tm_size):
+def load_edgelist(in_fname, out_fname, tm_size):
   """Load edgelist file and output NetworkX graph with generated timestamp as JSON format
   Usage:
   > from patternmatching.gray.incremental.load_edgelist import load_edgelist_time
@@ -76,6 +76,41 @@ def filter_time(in_json, out_json, limit_tm):
   # nx.write_gexf(graph2, "output.gexf")
 
 
+def load_edgelist_time(in_fname, out_fname, limit_tm=None):
+  graph = nx.Graph()
+  
+  rf = open(in_fname, "r")
+  reader = csv.reader(rf, delimiter=" ")
+  
+  base_days = None
+  
+  def sec_to_days(sec):
+    return sec / (60 * 60 * 24)
+  
+  for row in reader:
+    src = int(row[0])
+    dst = int(row[1])
+    tm = int(row[2])
+    t = sec_to_days(tm)
+    if base_days is None:
+      base_days = t
+
+    t -= base_days
+    if limit_tm is not None and t > limit_tm:
+      break
+    graph.add_edge(src, dst, label="yes", add=t)
+  
+  rf.close()
+  
+  nx.set_node_attributes(graph, "cyan", "label")
+  
+  with open(out_fname, "w") as wf:
+    data = json_graph.node_link_data(graph)
+    json.dump(data, wf, indent=2)
+
+
+
+
 
 if __name__ == "__main__":
   import sys
@@ -86,7 +121,19 @@ if __name__ == "__main__":
   tm_size = int(argv[1])
   limit_tm = int(argv[2])
 
-  load_edgelist_time("data/imdb/edges", "data/IMDb.json", tm_size)
+  print("Convert Congress Data")
+  load_edgelist("data/Congress/edges", "data/Congress.json", tm_size)
+  filter_time("data/Congress.json", "data/Congress1.json", limit_tm)
+
+  print("Convert IMDb Data")
+  load_edgelist("data/imdb/edges", "data/IMDb.json", tm_size)
   filter_time("data/IMDb.json", "data/IMDb1.json", limit_tm)
   
+  print("Convert Amazon Data")
+  load_edgelist("data/Amazon/edges", "data/Amazon.json", tm_size)
+  filter_time("data/Amazon.json", "data/Amazon1.json", limit_tm)
+  
+  # print("Convert Stackoverflow Data")
+  # load_edgelist_time("data/real/sx-stackoverflow.txt", "data/stackoverflow.json", limit_tm)
+  # filter_time("data/stackoverflow.json", "data/stackoverflow1.json", limit_tm)
   

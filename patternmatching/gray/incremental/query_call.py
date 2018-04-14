@@ -202,6 +202,8 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   # init_graph.remove_edges_from(total_edges)
   init_graph.add_edges_from(init_edges)
 
+  time_list = list()
+
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
@@ -209,7 +211,9 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   grm.run_gray()
   results = grm.get_results()
   ed = time.time()
-  print("Found %d patterns at time %d: %f[s]" % (len(results), 0, (ed - st)))
+  elapsed = ed - st
+  print("Found %d patterns at time %d: %f[s]" % (len(results), 0, elapsed))
+  time_list.append(elapsed)
 
   ## Run Incremental G-Ray
   for t in range(1, max_steps):
@@ -234,10 +238,13 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
       stats.print_stats()
     
     ed = time.time()
-    print("Found %d patterns at time %d: %f[s]" % (len(results), t, (ed - st)))
-    # print "Extract: " + str(grm.getExtract())
+    elapsed = ed - st
+    print("Found %d patterns at time %d: %f[s]" % (len(results), t, elapsed))
+    time_list.append(elapsed)
 
-
+  print("Total G-Ray time: %f" % sum(time_list))
+  print("Average G-Ray time: %f" % (sum(time_list) / len(time_list)))
+  
   results = grm.get_results()
   patterns = results.values()
   
@@ -297,7 +304,7 @@ if __name__ == '__main__':
   qargs = args[2:]
   print gfile
   print qargs
-  logging.basicConfig(level=logging.DEBUG)
+  logging.basicConfig(level=logging.WARNING)
   run_query(gfile, qargs, True, False, 10)
 
 

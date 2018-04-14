@@ -137,6 +137,8 @@ def run_query_step(graph_json, query_args, max_steps=100):
   graph.add_nodes_from(graph.nodes(data=True))
   graph.add_edges_from(init_edges)
 
+  time_list = list()
+
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
@@ -144,7 +146,9 @@ def run_query_step(graph_json, query_args, max_steps=100):
   grm.run_gray()
   results = grm.get_results()
   ed = time.time()
-  print("Found %d patterns at step %d: %f[s]" % (len(results), 0, (ed - st)))
+  elapsed = ed - st
+  print("Found %d patterns at step %d: %f[s]" % (len(results), 0, elapsed))
+  time_list.append(elapsed)
 
   ## Run Incremental G-Ray
   for t in range(1, max_steps):
@@ -153,13 +157,20 @@ def run_query_step(graph_json, query_args, max_steps=100):
     print("Add edges: %d" % len(add_edges))
     graph.add_edges_from(add_edges)
     grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
+    numv = graph.number_of_nodes()
+    nume = graph.number_of_edges()
+    print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
     
     st = time.time()
     grm.run_gray()
     results = grm.get_results()
     ed = time.time()
-    print("Found %d patterns at step %d: %f[s]" % (len(results), t, (ed - st)))
+    elapsed = ed - st
+    print("Found %d patterns at step %d: %f[s]" % (len(results), t, elapsed))
+    time_list.append(elapsed)
   
+  print("Total G-Ray time: %f" % sum(time_list))
+  print("Average G-Ray time: %f" % (sum(time_list) / len(time_list)))
   
 
 
@@ -389,13 +400,14 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
 if __name__ == '__main__':
   args = sys.argv
   if len(args) < 2:
-    print "Usage: %s [GraphJSON] [QueryArgs...]" % args[0]
+    print "Usage: %s [GraphJSON] [Steps] [QueryArgs...]" % args[0]
     sys.exit(1)
   gfile = args[1]
-  qargs = args[2:]
+  steps = int(args[2])
+  qargs = args[3:]
   print gfile
   print qargs
-  logging.basicConfig(level=logging.DEBUG)
-  run_query(gfile, qargs, True, False)
+  logging.basicConfig(level=logging.WARNING)
+  run_query_step(gfile, qargs, steps)
 
 
