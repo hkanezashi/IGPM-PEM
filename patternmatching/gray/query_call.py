@@ -133,16 +133,18 @@ def run_query_step(graph_json, query_args, max_steps=100):
   ## Initialize base graph
   print("Initialize base graph")
   init_edges = add_timestamp_edges[0]
-  graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
-  graph.add_nodes_from(graph.nodes(data=True))
-  graph.add_edges_from(init_edges)
+  node_ids = set([e[0] for e in init_edges] + [e[1] for e in init_edges])
+  init_nodes = [(n, p) for (n, p) in graph.nodes(data=True) if n in node_ids]
+  init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
+  init_graph.add_nodes_from(init_nodes)
+  init_graph.add_edges_from(init_edges)
 
   time_list = list()
 
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
-  grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
+  grm = gray_multiple.GRayMultiple(init_graph, query, directed, cond)
   grm.run_gray()
   results = grm.get_results()
   ed = time.time()
@@ -155,10 +157,15 @@ def run_query_step(graph_json, query_args, max_steps=100):
     print("Run batch G-Ray: %d" % t)
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))
-    graph.add_edges_from(add_edges)
-    grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
-    numv = graph.number_of_nodes()
-    nume = graph.number_of_edges()
+    node_ids = set([e[0] for e in add_edges] + [e[1] for e in add_edges])
+    add_nodes = [(n, p) for (n, p) in graph.nodes(data=True) if n in node_ids]
+    init_graph.add_nodes_from(add_nodes)
+    print("Effected nodes: %d" % len(add_nodes))
+
+    init_graph.add_edges_from(add_edges)
+    grm = gray_multiple.GRayMultiple(init_graph, query, directed, cond)
+    numv = init_graph.number_of_nodes()
+    nume = init_graph.number_of_edges()
     print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
     
     st = time.time()

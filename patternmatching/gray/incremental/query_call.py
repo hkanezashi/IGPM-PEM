@@ -218,7 +218,6 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   ## Run Incremental G-Ray
   for t in range(1, max_steps):
     print("Run incremental G-Ray: %d" % t)
-    st = time.time()
     
     if enable_profile and t == max_steps - 1:
       import cProfile
@@ -227,8 +226,10 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
     
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))
+    st = time.time()
     grm.run_incremental_gray(add_edges)
     results = grm.get_results()
+    ed = time.time()
     
     if enable_profile and t == max_steps - 1:
       pr.disable()
@@ -237,7 +238,6 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
       stats.sort_stats("tottime")
       stats.print_stats()
     
-    ed = time.time()
     elapsed = ed - st
     print("Found %d patterns at time %d: %f[s]" % (len(results), t, elapsed))
     time_list.append(elapsed)

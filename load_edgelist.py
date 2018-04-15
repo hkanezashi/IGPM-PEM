@@ -67,6 +67,7 @@ def filter_time(in_json, out_json, limit_tm):
   
   graph2.add_edges_from(edges)
   nx.set_node_attributes(graph2, "cyan", "label")
+  print("Number of nodes: %d" % graph2.number_of_nodes())
   
   with open(out_json, "w") as wf:
     data = json_graph.node_link_data(graph2)
