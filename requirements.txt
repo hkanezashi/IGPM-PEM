@@ -5,3 +5,6 @@ pyparsing
 matplotlib
 networkx
 metis
+keras
+keras-rl
+gym

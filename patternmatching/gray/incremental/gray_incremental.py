@@ -7,13 +7,10 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 
 import time
 import networkx as nx
-import cProfile
-import pstats
 
 from patternmatching.gray import extract, rwr
 from patternmatching.gray.incremental.extract_incremental import Extract
 from patternmatching.gray.gray_multiple import GRayMultiple
-from patternmatching.gray.incremental.partial_execution_manager import PEM
 from patternmatching.query.Condition import *
 from patternmatching.query import QueryResult
 
@@ -80,7 +77,7 @@ def valid_result(result, query, nodemap):
 class GRayIncremental(GRayMultiple, object):
   def __init__(self, graph, query, directed, cond):
     super(GRayIncremental, self).__init__(graph, query, directed, cond)
-    self.pem = PEM(graph)
+    self.elapsed = 0.0  # Elapsed time
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes(nodes)
@@ -92,6 +89,7 @@ class GRayIncremental(GRayMultiple, object):
     Run batch G-Ray algorithm
     :return:
     """
+    st = time.time()
     logging.info("---- Start Batch G-Ray ----")
     logging.info("#### Compute RWR")
     self.computeRWR()
@@ -100,6 +98,8 @@ class GRayIncremental(GRayMultiple, object):
     ext.computeExtract_batch()
     self.extracts[''] = ext
     self.process_gray()
+    ed = time.time()
+    self.elapsed = ed - st  # set elapsed time
 
 
   def process_incremental_gray(self, nodes):
@@ -138,14 +138,34 @@ class GRayIncremental(GRayMultiple, object):
       self.process_neighbors(result, touched, nodemap, unprocessed)
   
   
+  def get_observation(self):
+    """Extract current G-Ray environment space features (Used for reinforcement learning)
+    :return: List of space features
+    """
+    num_nodes = self.graph.number_of_nodes()
+    num_edges = self.graph.number_on_edges()
+    return [num_nodes, num_edges]
+  
+  
+  def get_reward(self, max_value):
+    """Get reward of reinforcement learning
+    :param max_value: Maximum reward value
+    :return: Reward value of current step
+    """
+    return min(max_value, len(self.results) / self.elapsed)
+  
 
-  def run_incremental_gray(self, add_edges):
+  def run_incremental_gray(self, add_edges, affected_nodes=None):
     """
     Run incremental G-Ray algorithm
     :param add_edges: Added edges
+    :param affected_nodes: Nodes for recomputation
     :return:
     """
-    nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])  # Affected nodes
+    if affected_nodes is None:
+      nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])  # Affected nodes
+    else:
+      nodes = affected_nodes
     self.graph.add_edges_from(add_edges)
 
     logging.info("---- Start Incremental G-Ray ----")
@@ -373,20 +393,17 @@ class GRayIncremental(GRayMultiple, object):
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
   
-  def getRWR(self, m, n):
-    return self.graph_rwr[m][n]
-  
-  #def getExtract(self):
-  #  return self.extract
-  
-  @staticmethod
-  def rwr(g, m, n):  # Random walk with restart m -> n in g
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
-    rw = rwr.RWR(g)
-    results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-    logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
-    return results[n]
+  # def getRWR(self, m, n):
+  #   return self.graph_rwr[m][n]
+  #
+  # @staticmethod
+  # def rwr(g, m, n):  # Random walk with restart m -> n in g
+  #   RESTART_PROB = 0.7
+  #   OG_PROB = 0.1
+  #   rw = rwr.RWR(g)
+  #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+  #   logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
+  #   return results[n]
 
 
 
