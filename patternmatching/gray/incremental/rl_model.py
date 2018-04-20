@@ -1,6 +1,8 @@
 import networkx as nx
 import community
 import gym
+from gym.spaces import Box, Discrete
+import numpy as np
 
 import gray_incremental
 
@@ -22,7 +24,7 @@ def recursive_louvain(graph, min_size):
     return rev_part
   
   def __inner_recursive_louvain(g, num_th):
-    _, pt = get_louvain(g)
+    pt = get_louvain(g)
     rev_part = create_reverse_partition(pt)
     mem_list = list()
     
@@ -78,13 +80,15 @@ class GraphEnv(gym.Env):
     :param max_step: Number of iterations
     """
     super(gym.Env, self).__init__()
-    self.action_space = [-1, +1]
-    self.observation_space = gym.spaces.Discrete(2)  # Number of nodes, edges
+    self.action_space = [-1, 1]
+    self.observation_space = Box(low=0, high=np.inf, shape=(1,2))  # Number of nodes, edges
+    print self.observation_space.shape
     self.max_reward = 100.0
     self.reward_range = [-1., self.max_reward]
     self.grm = gray_incremental.GRayIncremental(graph, query, graph.is_directed(), cond)
+    self.grm.run_gray()  # Initialization
     self.max_step = max_step
-    self.step = 0
+    self.count = 0
     self.node_threshold = 10
     self.min_threshold = 4
     self.reset()
@@ -108,22 +112,22 @@ class GraphEnv(gym.Env):
     elif action == +1:
       self.node_threshold += 1
     
-    t = self.step
+    t = self.count
     add_edges = self.add_timestamp_edges[t]
     nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
     affected_nodes = get_recompute_nodes(self.grm.graph, nodes, self.node_threshold)
     self.grm.run_incremental_gray(add_edges, affected_nodes)
-    self.step += 1
+    self.count += 1
     
-    return self.grm.get_observation(), self.grm.get_reward(self.max_reward), self.step >= self.max_step, {}
+    return self.grm.get_observation(), self.grm.get_reward(self.max_reward), self.count >= self.max_step, {}
     
   
   def reset(self):
-    return self.observation_space
+    return self.grm.get_observation()
   
   
   def render(self, mode='human', close=False):
-    print self.step, self.observation_space, self.node_threshold
+    print self.count, self.observation_space, self.node_threshold
   
   def close(self):
     pass

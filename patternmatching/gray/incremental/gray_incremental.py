@@ -7,6 +7,7 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 
 import time
 import networkx as nx
+import numpy as np
 
 from patternmatching.gray import extract, rwr
 from patternmatching.gray.incremental.extract_incremental import Extract
@@ -143,8 +144,8 @@ class GRayIncremental(GRayMultiple, object):
     :return: List of space features
     """
     num_nodes = self.graph.number_of_nodes()
-    num_edges = self.graph.number_on_edges()
-    return [num_nodes, num_edges]
+    num_edges = self.graph.number_of_edges()
+    return np.array([num_nodes, num_edges])
   
   
   def get_reward(self, max_value):
