@@ -9,8 +9,11 @@ import community  # http://python-louvain.readthedocs.io/en/latest/
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
+from keras.optimizers import Adam
+from rl.policy import BoltzmannQPolicy
 from rl.agents.cem import CEMAgent
-from rl.memory import SequentialMemory
+from rl.agents.dqn import DQNAgent
+from rl.memory import EpisodeParameterMemory
 
 sys.path.append(".")
 
@@ -28,7 +31,7 @@ max_step = int(argv[2])
 query, cond, directed, groupby, orderby, aggregates = parse_args(argv[3:])
 
 env = GraphEnv(graph, query, cond, max_step)
-nb_actions = len(env.action_space)
+nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape
 print "Input shape:", input_shape
 
@@ -43,9 +46,13 @@ model.add(Activation('linear'))
 print(model.summary())
 print(env.observation_space)
 
-memory = SequentialMemory(limit=50, window_length=1)
-agent = CEMAgent(model, nb_actions, memory, nb_steps_warmup=5)
-agent.compile()
+memory = EpisodeParameterMemory(limit=50, window_length=1)
+# agent = CEMAgent(model, nb_actions, memory, nb_steps_warmup=5)
+# agent.compile()
+policy = BoltzmannQPolicy()
+agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=10,
+               target_model_update=1e-2, policy=policy)
+agent.compile(Adam(lr=1e-3), metrics=['mae'])
 
 agent.fit(env, max_step)
 agent.test(env, max_step)

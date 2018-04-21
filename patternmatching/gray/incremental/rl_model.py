@@ -80,9 +80,8 @@ class GraphEnv(gym.Env):
     :param max_step: Number of iterations
     """
     super(gym.Env, self).__init__()
-    self.action_space = [-1, 1]
-    self.observation_space = Box(low=0, high=np.inf, shape=(1,2))  # Number of nodes, edges
-    print self.observation_space.shape
+    self.action_space = Discrete(2)
+    self.observation_space = Box(low=0, high=np.inf, shape=(1,2), dtype=np.int32)  # Number of nodes, edges
     self.max_reward = 100.0
     self.reward_range = [-1., self.max_reward]
     self.grm = gray_incremental.GRayIncremental(graph, query, graph.is_directed(), cond)
@@ -107,9 +106,9 @@ class GraphEnv(gym.Env):
   
   def step(self, action):
     
-    if action == -1 and self.node_threshold > self.min_threshold:
+    if action == 0 and self.node_threshold > self.min_threshold:
       self.node_threshold -= 1
-    elif action == +1:
+    elif action == 1:
       self.node_threshold += 1
     
     t = self.count
@@ -127,7 +126,8 @@ class GraphEnv(gym.Env):
   
   
   def render(self, mode='human', close=False):
-    print self.count, self.observation_space, self.node_threshold
+    # print self.count, self.observation_space, self.node_threshold
+    pass
   
   def close(self):
     pass
