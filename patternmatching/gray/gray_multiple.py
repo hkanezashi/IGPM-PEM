@@ -139,7 +139,7 @@ class GRayMultiple:
     ext.computeExtract()
     self.extracts[''] = ext
     ed = time.time()
-    logging.info("#### Compute Extract: %f [s]" % (ed - st))
+    logging.info("#### Compute Paths: %f [s]" % (ed - st))
     
     # pr = cProfile.Profile()
     # pr.enable()

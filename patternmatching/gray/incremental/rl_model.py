@@ -80,18 +80,7 @@ class GraphEnv(gym.Env):
     :param max_step: Number of iterations
     """
     super(gym.Env, self).__init__()
-    self.action_space = Discrete(2)
-    self.observation_space = Box(low=0, high=np.inf, shape=(1,2), dtype=np.int32)  # Number of nodes, edges
-    self.max_reward = 100.0
-    self.reward_range = [-1., self.max_reward]
-    self.grm = gray_incremental.GRayIncremental(graph, query, graph.is_directed(), cond)
-    self.grm.run_gray()  # Initialization
-    self.max_step = max_step
-    self.count = 0
-    self.node_threshold = 10
-    self.min_threshold = 4
-    self.reset()
-
+    
     ## Extract edge timestamp
     add_edge_timestamps = nx.get_edge_attributes(graph, "add")  # edge, time
     def dictinvert(d):
@@ -101,6 +90,26 @@ class GraphEnv(gym.Env):
         keys.append(k)
       return inv
     self.add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
+
+    ## Initialize base graph
+    print("Initialize base graph")
+    init_edges = self.add_timestamp_edges[0]
+    init_graph = nx.Graph()
+    init_graph.add_nodes_from(graph.nodes(data=True))
+    init_graph.add_edges_from(init_edges)
+    nx.set_edge_attributes(init_graph, 0, "add")
+
+    self.action_space = Discrete(2)
+    self.observation_space = Box(low=0, high=np.inf, shape=(1,2), dtype=np.int32)  # Number of nodes, edges
+    self.max_reward = 100.0
+    self.reward_range = [-1., self.max_reward]
+    self.grm = gray_incremental.GRayIncremental(init_graph, query, graph.is_directed(), cond)
+    self.grm.run_gray()  # Initialization
+    self.max_step = max_step
+    self.count = 0
+    self.node_threshold = 10
+    self.min_threshold = 4
+    self.reset()
     
     
   

@@ -27,7 +27,7 @@ class Extract:
     :return:
     """
     for i in self.g.nodes():
-      self.pre[i] = {}
+      self.pre[i] = dict()
       self.pre[i][i] = i
       self.computeExtractSingle(i)
   
@@ -47,6 +47,11 @@ class Extract:
     :param i: Start node ID
     :return:
     """
+    # print("ComputeExtractSingle: " + str(i))
+    if i not in self.pre:
+      self.pre[i] = dict()
+      self.pre[i][i] = i
+    
     dist = dict()   ## Distance score
     hops = dict()   ## Hops
     finished = set()   ## Finished set

@@ -147,6 +147,7 @@ def run_gray_iterations(graph, query, directed, cond, max_steps):
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
   init_graph.add_nodes_from(graph.nodes(data=True))
   init_graph.add_edges_from(init_edges)
+  nx.set_edge_attributes(init_graph, 0, "add")
 
   time_list = list()
 
@@ -224,8 +225,9 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   query, cond, directed, groupby, orderby, aggregates = parse_args(query_args)
   graph = load_graph(graph_json)
   
-  posg = nx.spring_layout(graph)
+
   if plot_graph:
+    posg = nx.spring_layout(graph)
     colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems()]
     edge_labels = nx.get_edge_attributes(graph, LABEL)
     nx.draw_networkx(graph, posg, arrows=True, node_color=colors, node_size=1000, font_size=24)
@@ -309,14 +311,15 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
 
 if __name__ == '__main__':
   args = sys.argv
-  if len(args) < 2:
-    print "Usage: %s [GraphJSON] [QueryArgs...]" % args[0]
+  if len(args) < 3:
+    print "Usage: %s [GraphJSON] [Steps] [QueryArgs...]" % args[0]
     sys.exit(1)
   gfile = args[1]
-  qargs = args[2:]
+  steps = int(args[2])
+  qargs = args[3:]
   print gfile
   print qargs
-  logging.basicConfig(level=logging.WARNING)
-  run_query(gfile, qargs, True, False, 10)
+  logging.basicConfig(level=logging.INFO)
+  run_query(gfile, qargs, True, False, steps)
 
 

@@ -64,4 +64,18 @@ class RWR:
         p_0[source_index] = 1 / float(len(sources))
       except ValueError:
         sys.exit("Source node {} is not in original graph. Source: {}. Exiting.".format(source_id, sources))
+    # print p_0
     return np.array(p_0)
+
+
+if __name__ == "__main__":
+  g = nx.karate_club_graph()
+  r = RWR(g)
+  nodes = g.nodes()
+  for n in nodes:
+    results = r.run_exp(n, 0.7, 0.1)
+    print n, results
+    
+  
+  
+  

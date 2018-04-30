@@ -75,14 +75,24 @@ def valid_result(result, query, nodemap):
   return True
 
 
+def get_init_graph(graph):
+  edges = graph.edges(data=True)
+  init_edges = [e for e in edges if e[2]["add"] == 0]
+  init_graph = nx.Graph()
+  init_graph.add_edges_from(init_edges)
+  # print init_graph.edges.data(data=True)
+  return init_graph
+
+
 class GRayIncremental(GRayMultiple, object):
   def __init__(self, graph, query, directed, cond):
+    # init_graph = get_init_graph(graph)
     super(GRayIncremental, self).__init__(graph, query, directed, cond)
     self.elapsed = 0.0  # Elapsed time
   
   def update_graph(self, nodes, edges):
-    self.graph.add_nodes(nodes)
-    self.graph.add_edges(edges)
+    self.graph.add_nodes_from(nodes)
+    self.graph.add_edges_from(edges)
   
   
   def run_gray(self):
@@ -90,17 +100,26 @@ class GRayIncremental(GRayMultiple, object):
     Run batch G-Ray algorithm
     :return:
     """
-    st = time.time()
+    start = time.time()
     logging.info("---- Start Batch G-Ray ----")
-    logging.info("#### Compute RWR")
+    st = time.time()
     self.computeRWR()
-    logging.info("#### Compute Extract")
+    ed = time.time()
+    logging.info("#### Compute RWR: %f [s]" % (ed - st))
+
+    st = time.time()
     ext = Extract(self.graph, self.graph_rwr)
     ext.computeExtract_batch()
     self.extracts[''] = ext
+    ed = time.time()
+    logging.info("#### Compute Paths: %f [s]" % (ed - st))
+
+    st = time.time()
     self.process_gray()
     ed = time.time()
-    self.elapsed = ed - st  # set elapsed time
+    logging.info("#### Compute G-Ray: %f [s]" % (ed - st))
+    end = time.time()
+    self.elapsed = end - start  # set elapsed time
 
 
   def process_incremental_gray(self, nodes):
@@ -110,6 +129,7 @@ class GRayIncremental(GRayMultiple, object):
     kp = Condition.get_node_props(self.query, k)
     seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidates
     seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
+    # print len(seeds)
     
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
@@ -153,7 +173,9 @@ class GRayIncremental(GRayMultiple, object):
     :param max_value: Maximum reward value
     :return: Reward value of current step
     """
-    return min(max_value, len(self.results) / self.elapsed)
+    reward = len(self.results) / self.elapsed
+    print("Patterns: %d, Time: %f, Reward: %f" % (len(self.results), self.elapsed, reward))
+    return min(max_value, reward)
   
 
   def run_incremental_gray(self, add_edges, affected_nodes=None):
@@ -167,12 +189,13 @@ class GRayIncremental(GRayMultiple, object):
       nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])  # Affected nodes
     else:
       nodes = affected_nodes
+    self.graph.add_nodes_from(nodes)
     self.graph.add_edges_from(add_edges)
 
     logging.info("---- Start Incremental G-Ray ----")
     logging.info("Number of re-computation nodes: %d" % len(nodes))
     
-    st = time.time()
+    start = st = time.time()
     self.compute_part_RWR(nodes)
     ed = time.time()
     logging.info("#### Compute RWR: %f [s]" % (ed - st))
@@ -182,18 +205,16 @@ class GRayIncremental(GRayMultiple, object):
     ext.computeExtract_incremental(nodes)
     self.extracts[''] = ext
     ed = time.time()
-    logging.info("#### Compute Extract: %f [s]" % (ed - st))
+    logging.info("#### Compute Paths: %f [s]" % (ed - st))
 
     # pr = cProfile.Profile()
     # pr.enable()
     st = time.time()
     self.process_incremental_gray(nodes)
-    ed = time.time()
+    end = ed = time.time()
     logging.info("#### Compute G-Ray: %f [s]" % (ed - st))
-    # pr.disable()
-    # stats = pstats.Stats(pr)
-    # stats.sort_stats('tottime')
-    # stats.print_stats()
+    self.elapsed = end - start
+
 
   
   def getExtract(self, label):
@@ -393,18 +414,4 @@ class GRayIncremental(GRayMultiple, object):
     for m in nodes:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
-  
-  # def getRWR(self, m, n):
-  #   return self.graph_rwr[m][n]
-  #
-  # @staticmethod
-  # def rwr(g, m, n):  # Random walk with restart m -> n in g
-  #   RESTART_PROB = 0.7
-  #   OG_PROB = 0.1
-  #   rw = rwr.RWR(g)
-  #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-  #   logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
-  #   return results[n]
-
-
 

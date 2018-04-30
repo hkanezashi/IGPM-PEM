@@ -406,7 +406,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
 
 if __name__ == '__main__':
   args = sys.argv
-  if len(args) < 2:
+  if len(args) < 3:
     print "Usage: %s [GraphJSON] [Steps] [QueryArgs...]" % args[0]
     sys.exit(1)
   gfile = args[1]
@@ -414,7 +414,7 @@ if __name__ == '__main__':
   qargs = args[3:]
   print gfile
   print qargs
-  logging.basicConfig(level=logging.WARNING)
+  logging.basicConfig(level=logging.INFO)
   run_query_step(gfile, qargs, steps)
 
 
