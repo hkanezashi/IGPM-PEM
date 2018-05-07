@@ -191,6 +191,9 @@ class GRayIncremental(GRayMultiple, object):
       nodes = affected_nodes
     self.graph.add_nodes_from(nodes)
     self.graph.add_edges_from(add_edges)
+    
+    logging.info("Number of vertices: %d" % self.graph.number_of_nodes())
+    logging.info("Number of edges: %d" % self.graph.number_of_edges())
 
     logging.info("---- Start Incremental G-Ray ----")
     logging.info("Number of re-computation nodes: %d" % len(nodes))

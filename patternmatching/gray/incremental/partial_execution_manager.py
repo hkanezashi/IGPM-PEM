@@ -38,7 +38,7 @@ test_step = max_step - train_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(argv[3:])
 
 # init_graph = get_init_graph(graph)
-env = GraphEnv(graph, query, cond, max_step)
+env = GraphEnv(graph, query, cond, train_step)
 nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape
 print "Input shape:", input_shape

@@ -5,6 +5,7 @@ import sys
 import time
 
 import gray_incremental
+from patternmatching.gray.incremental.rl_model import get_recompute_nodes
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
@@ -174,6 +175,9 @@ def run_gray_iterations(graph, query, directed, cond, max_steps):
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))
     st = time.time()
+    # nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
+    # affected_nodes = get_recompute_nodes(grm.graph, nodes, 4)
+    # grm.run_incremental_gray(add_edges, affected_nodes)
     grm.run_incremental_gray(add_edges)
     results = grm.get_results()
     ed = time.time()
