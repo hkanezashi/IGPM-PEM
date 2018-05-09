@@ -116,8 +116,20 @@ def load_edgelist_time(in_fname, out_fname, limit_tm=None):
 if __name__ == "__main__":
   import sys
   argv = sys.argv
+  
+  if len(argv) < 5:
+    print("Usage: python %s [Size] [Steps] [InputEdgelist] [OutputJSON]" % argv[0])
+    exit(1)
+  
+  temp_file = "temp.json"
+  tm_size = int(argv[1])
+  limit_tm = int(argv[2])
+  load_edgelist(argv[3], temp_file, tm_size)
+  filter_time(temp_file, argv[4], limit_tm)
+  
+  """
   if len(argv) < 3:
-    print("Usage: python %s [tm_size] [limit_tm]" % argv[0])
+    print("Usage: python %s [Size] [Steps]" % argv[0])
     exit(1)
   tm_size = int(argv[1])
   limit_tm = int(argv[2])
@@ -133,6 +145,7 @@ if __name__ == "__main__":
   print("Convert Amazon Data")
   load_edgelist("data/Amazon/edges", "data/Amazon.json", tm_size)
   filter_time("data/Amazon.json", "data/Amazon1.json", limit_tm)
+  """
   
   # print("Convert Stackoverflow Data")
   # load_edgelist_time("data/real/sx-stackoverflow.txt", "data/stackoverflow.json", limit_tm)
