@@ -126,8 +126,9 @@ class GraphEnv(gym.Env):
     affected_nodes = get_recompute_nodes(self.grm.graph, nodes, self.node_threshold)
     self.grm.run_incremental_gray(add_edges, affected_nodes)
     self.count += 1
+    stop = (self.count >= self.max_step)
     
-    return self.grm.get_observation(), self.grm.get_reward(self.max_reward), self.count >= self.max_step, {}
+    return self.grm.get_observation(), self.grm.get_reward(self.max_reward), stop, {}
     
   
   def reset(self):

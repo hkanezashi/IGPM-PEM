@@ -89,6 +89,7 @@ class GRayIncremental(GRayMultiple, object):
     # init_graph = get_init_graph(graph)
     super(GRayIncremental, self).__init__(graph, query, directed, cond)
     self.elapsed = 0.0  # Elapsed time
+    self.time_limit = 10.0
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -135,6 +136,7 @@ class GRayIncremental(GRayMultiple, object):
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
   
+    st = time.time()  # Start time
     for i in seeds:
       logging.debug("#### Choose Seed: " + str(i))
       self.current_seed = i
@@ -157,6 +159,9 @@ class GRayIncremental(GRayMultiple, object):
       touched.append(k)
     
       self.process_neighbors(result, touched, nodemap, unprocessed)
+      if time.time() - st > self.time_limit:
+        print("Stop G-Ray iterations")
+        break
   
   
   def get_observation(self):

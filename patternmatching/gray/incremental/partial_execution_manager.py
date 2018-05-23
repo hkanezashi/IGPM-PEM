@@ -11,13 +11,11 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
 from rl.policy import BoltzmannQPolicy
-from rl.agents.cem import CEMAgent
 from rl.agents.dqn import DQNAgent
 from rl.memory import EpisodeParameterMemory
 
 sys.path.append(".")
 
-from patternmatching.gray.incremental.gray_incremental import get_init_graph
 from patternmatching.gray.incremental.query_call import load_graph, parse_args
 from patternmatching.gray.incremental.rl_model import GraphEnv
 
@@ -25,7 +23,6 @@ from patternmatching.gray.incremental.rl_model import GraphEnv
 logging.basicConfig(level=logging.INFO)
 
 argv = sys.argv
-
 if len(argv) < 4:
   print("Usage: python %s GraphJSON MaxStep QueryArgs..." % argv[0])
   exit(1)
