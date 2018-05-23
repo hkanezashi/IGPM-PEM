@@ -6,6 +6,7 @@ Patrial Execution Manager
 import sys
 import time
 import logging
+from configparser import ConfigParser
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -23,19 +24,24 @@ from patternmatching.gray.incremental.rl_model import GraphEnv
 logging.basicConfig(level=logging.INFO)
 
 argv = sys.argv
-if len(argv) < 4:
-  print("Usage: python %s GraphJSON MaxStep QueryArgs..." % argv[0])
+if len(argv) < 2:
+  print("Usage: python %s [ConfFile]" % argv[0])
   exit(1)
 
-graph = load_graph(argv[1])
-max_step = int(argv[2])
+conf = ConfigParser()
+conf.read(argv[1])
+graph_json = conf.get("G-Ray", "input_json")
+max_step = int(conf.get("G-Ray", "steps"))
+args = conf.get("G-Ray", "query").split(" ")
+time_limit = float(conf.get("G-Ray", "time_limit"))
+
+graph = load_graph(graph_json)
 train_step = max_step / 2
 test_step = max_step - train_step
-
-query, cond, directed, groupby, orderby, aggregates = parse_args(argv[3:])
+query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 
 # init_graph = get_init_graph(graph)
-env = GraphEnv(graph, query, cond, train_step)
+env = GraphEnv(graph, query, cond, train_step, time_limit)
 nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape
 print "Input shape:", input_shape

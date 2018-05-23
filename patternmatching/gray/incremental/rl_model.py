@@ -71,13 +71,14 @@ class GraphEnv(gym.Env):
 
   """
   
-  def __init__(self, graph, query, cond, max_step):
+  def __init__(self, graph, query, cond, max_step, time_limit):
     """Constructor of an environment object for graph
     
     :param graph: Input data graph
     :param query: Query data graph
     :param cond: Condition object
     :param max_step: Number of iterations
+    :param time_limit: Time limit of G-Ray iterations
     """
     super(gym.Env, self).__init__()
     
@@ -103,7 +104,7 @@ class GraphEnv(gym.Env):
     self.observation_space = Box(low=0, high=np.inf, shape=(1,2), dtype=np.int32)  # Number of nodes, edges
     self.max_reward = 100.0
     self.reward_range = [-1., self.max_reward]
-    self.grm = gray_incremental.GRayIncremental(init_graph, query, graph.is_directed(), cond)
+    self.grm = gray_incremental.GRayIncremental(init_graph, query, graph.is_directed(), cond, time_limit)
     self.grm.run_gray()  # Initialization
     self.max_step = max_step
     self.count = 0

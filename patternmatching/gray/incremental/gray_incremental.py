@@ -85,11 +85,10 @@ def get_init_graph(graph):
 
 
 class GRayIncremental(GRayMultiple, object):
-  def __init__(self, graph, query, directed, cond):
+  def __init__(self, graph, query, directed, cond, time_limit):
     # init_graph = get_init_graph(graph)
-    super(GRayIncremental, self).__init__(graph, query, directed, cond)
+    super(GRayIncremental, self).__init__(graph, query, directed, cond, time_limit)
     self.elapsed = 0.0  # Elapsed time
-    self.time_limit = 10.0
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -159,8 +158,8 @@ class GRayIncremental(GRayMultiple, object):
       touched.append(k)
     
       self.process_neighbors(result, touched, nodemap, unprocessed)
-      if time.time() - st > self.time_limit:
-        print("Stop G-Ray iterations")
+      if 0.0 < self.time_limit < time.time() - st:
+        print("Timeout G-Ray iterations")
         break
   
   
@@ -418,8 +417,13 @@ class GRayIncremental(GRayMultiple, object):
   def compute_part_RWR(self, nodes):
     RESTART_PROB = 0.7
     OG_PROB = 0.1
+    st = time.time()
     rw = rwr.RWR(self.graph)
     for m in nodes:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
+      
+      if 0.0 < self.time_limit < time.time() - st:
+        print("Timeout G-Ray iterations")
+        break
 

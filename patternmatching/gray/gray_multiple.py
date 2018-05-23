@@ -81,7 +81,7 @@ class GRayMultiple:
   Class of basic G-Ray implementation (it outputs multiple patterns)
   """
   
-  def __init__(self, graph, query, directed, cond):
+  def __init__(self, graph, query, directed, cond, time_limit):
     self.graph = graph
     self.graph_rwr = {}
     self.query = query
@@ -91,6 +91,7 @@ class GRayMultiple:
     self.count = 0
     self.extracts = {}
     self.cond = cond ## Complex condition
+    self.time_limit = time_limit
 
   def process_gray(self):
     logging.debug("#### Find Seeds")
@@ -103,6 +104,7 @@ class GRayMultiple:
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
 
+    st = time.time()  # Start time
     for i in seeds:
       logging.debug("#### Choose Seed: " + str(i))
       self.current_seed = i
@@ -125,6 +127,10 @@ class GRayMultiple:
       touched.append(k)
 
       self.process_neighbors(result, touched, nodemap, unprocessed)
+      
+      if 0.0 < self.time_limit < time.time() - st:
+        print("Timeout G-Ray iterations")
+        break
 
 
   def run_gray(self):
@@ -438,6 +444,8 @@ class GRayMultiple:
   
   
   def computeRWR(self):
+    st = time.time()  # Start time
+    
     RESTART_PROB = 0.7
     OG_PROB = 0.1
     rw = rwr.RWR(self.graph)
@@ -445,9 +453,15 @@ class GRayMultiple:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
       # print "RWR:", m, self.graph_rwr[m]
+      if 0.0 < self.time_limit < time.time() - st:
+        print("Timeout RWR iterations")
+        break
   
   def getRWR(self, m, n):
-    return self.graph_rwr[m][n]
+    if not m in self.graph_rwr:
+      return 0.0
+    else:
+      return self.graph_rwr[m].get(n, 0.0)
   
   #def getExtract(self):
   #  return self.extract
