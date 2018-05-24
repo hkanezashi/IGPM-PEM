@@ -103,7 +103,7 @@ class GRayIncremental(GRayMultiple, object):
     start = time.time()
     logging.info("---- Start Batch G-Ray ----")
     st = time.time()
-    self.computeRWR()
+    self.computeRWR_batch()
     ed = time.time()
     logging.info("#### Compute RWR: %f [s]" % (ed - st))
 

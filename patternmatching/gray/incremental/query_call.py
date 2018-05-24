@@ -1,11 +1,14 @@
+from configparser import ConfigParser
+
 import networkx as nx
 import json
 from networkx.readwrite import json_graph
 import sys
 import time
 
-import gray_incremental
-from patternmatching.gray.incremental.rl_model import get_recompute_nodes
+sys.path.append(".")
+
+from patternmatching.gray.incremental.gray_incremental import GRayIncremental
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
@@ -126,7 +129,7 @@ def parse_args(query_args):
   return query, cond, directed, groupby, orderby, aggregates
 
 
-def run_gray_iterations(graph, query, directed, cond, max_steps):
+def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   """Repeat incremental G-Ray algorithms
 
   :return: List of patterns
@@ -155,7 +158,7 @@ def run_gray_iterations(graph, query, directed, cond, max_steps):
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
-  grm = gray_incremental.GRayIncremental(init_graph, query, directed, cond)
+  grm = GRayIncremental(init_graph, query, directed, cond, time_limit)
   grm.run_gray()
   results = grm.get_results()
   ed = time.time()
@@ -201,7 +204,7 @@ def run_gray_iterations(graph, query, directed, cond, max_steps):
 
 
 
-def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_steps=100):
+def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_steps=100, time_limit=0.0):
   """Parse pattern matching query command and options and execute incremental G-Ray
 
   :param graph_json: Graph JSON file
@@ -264,7 +267,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
     plt.close()
 
 
-  patterns = run_gray_iterations(graph, query, directed, cond, max_steps)
+  patterns = run_gray_iterations(graph, query, directed, cond, max_steps, time_limit)
   
   # for pattern in patterns:
   #   print pattern.get_graph().edges()
@@ -315,15 +318,20 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
 
 if __name__ == '__main__':
   args = sys.argv
-  if len(args) < 3:
-    print "Usage: %s [GraphJSON] [Steps] [QueryArgs...]" % args[0]
+  if len(args) < 2:
+    print("Usage: python %s [ConfFile]" % args[0])
     sys.exit(1)
-  gfile = args[1]
-  steps = int(args[2])
-  qargs = args[3:]
+    
+  conf = ConfigParser()
+  conf.read(args[1])
+
+  gfile = conf.get("G-Ray", "input_json")
+  steps = int(conf.get("G-Ray", "steps"))
+  qargs = conf.get("G-Ray", "query").split(" ")
+  time_limit = float(conf.get("G-Ray", "time_limit"))
   print gfile
   print qargs
   logging.basicConfig(level=logging.INFO)
-  run_query(gfile, qargs, True, False, steps)
+  run_query(gfile, qargs, True, False, steps, time_limit=time_limit)
 
 

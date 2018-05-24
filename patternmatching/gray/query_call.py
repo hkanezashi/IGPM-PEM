@@ -3,9 +3,11 @@ import json
 from networkx.readwrite import json_graph
 import sys
 import time
+from configparser import ConfigParser
 
+sys.path.append(".")
 
-import gray_multiple
+from patternmatching.gray.gray_multiple import GRayMultiple
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
@@ -18,7 +20,7 @@ label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
 enable_profile = False
 
 
-def run_query_step(graph_json, query_args, max_steps=100):
+def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
   
   vsymbols = set()  ## Vertices (symbol)
   esymbols = {}  ## Edges (symbol -> vertex tuple)
@@ -144,7 +146,7 @@ def run_query_step(graph_json, query_args, max_steps=100):
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
-  grm = gray_multiple.GRayMultiple(init_graph, query, directed, cond)
+  grm = GRayMultiple(init_graph, query, directed, cond, time_limit)
   grm.run_gray()
   results = grm.get_results()
   ed = time.time()
@@ -163,7 +165,7 @@ def run_query_step(graph_json, query_args, max_steps=100):
     print("Effected nodes: %d" % len(add_nodes))
 
     init_graph.add_edges_from(add_edges)
-    grm = gray_multiple.GRayMultiple(init_graph, query, directed, cond)
+    grm = GRayMultiple(init_graph, query, directed, cond, time_limit)
     numv = init_graph.number_of_nodes()
     nume = init_graph.number_of_edges()
     print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
@@ -340,7 +342,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
     pr = cProfile.Profile()
     pr.enable()
   
-  grm = gray_multiple.GRayMultiple(graph, query, directed, cond)
+  grm = GRayMultiple(graph, query, directed, cond, time_limit)
   grm.run_gray()
   results = grm.get_results()
 
@@ -406,15 +408,20 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
 
 if __name__ == '__main__':
   args = sys.argv
-  if len(args) < 3:
-    print "Usage: %s [GraphJSON] [Steps] [QueryArgs...]" % args[0]
+  if len(args) < 2:
+    print("Usage: python %s [ConfFile]" % args[0])
     sys.exit(1)
-  gfile = args[1]
-  steps = int(args[2])
-  qargs = args[3:]
+  
+  conf = ConfigParser()
+  conf.read(args[1])
+  
+  gfile = conf.get("G-Ray", "input_json")
+  steps = int(conf.get("G-Ray", "steps"))
+  qargs = conf.get("G-Ray", "query").split(" ")
+  time_limit = float(conf.get("G-Ray", "time_limit"))
   print gfile
   print qargs
   logging.basicConfig(level=logging.INFO)
-  run_query_step(gfile, qargs, steps)
+  run_query_step(gfile, qargs, steps, time_limit=time_limit)
 
 

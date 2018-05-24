@@ -441,11 +441,17 @@ class GRayMultiple:
   #def bridge_label(self, i, j, label):
   #  return self.extracts[label].getPath(i, j)
 
+  def computeRWR_batch(self):
+    RESTART_PROB = 0.7
+    OG_PROB = 0.1
+    rw = rwr.RWR(self.graph)
+    for m in self.graph.nodes():
+      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+      self.graph_rwr[m] = results
   
   
   def computeRWR(self):
     st = time.time()  # Start time
-    
     RESTART_PROB = 0.7
     OG_PROB = 0.1
     rw = rwr.RWR(self.graph)

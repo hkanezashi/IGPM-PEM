@@ -11,11 +11,8 @@ python load_edgelist.py [Edges/Step] [Steps] [InputEdgelist] [OutputJSON]
 - InputEdgelist: Edge list file (first and second columns indicate source and destination vertex ID)
 - OutputJSON: Graph file in JSON format
 
-## Batch
-```bash
-export PYTHONPATH=$(pwd)
-python patternmatching/gray/query_call.py [GraphJSON] [Steps] [QueryArgs...]
-```
+
+## Configuration File (ini format)
 - GraphJSON: Input Graph file in JSON format
 - Steps: Number of total steps
 - QueryArgs...: Options for the query graph
@@ -25,16 +22,21 @@ python patternmatching/gray/query_call.py [GraphJSON] [Steps] [QueryArgs...]
     - `--edgelabel` Edge label restriction (edgeID:label). Example: `--edgelabel x:yes y:yes z:yes`
 
 
+## Batch
+```bash
+python patternmatching/gray/query_call.py [ConfFile]
+```
+
 ## Incremental
 ```bash
 export PYTHONPATH=$(pwd)
-python patternmatching/gray/incremental/query_call.py [GraphJSON] [Steps] [QueryArgs...]
+python patternmatching/gray/incremental/query_call.py [ConfFile]
 ```
 
 ## Incremental with PEM
 ```bash
 export PYTHONPATH=$(pwd)
-python patternmatching/gray/incremental/partial_execution_manager.py [GraphJSON] [Steps] [QueryArgs...]
+python patternmatching/gray/incremental/partial_execution_manager.py [ConfFile]
 ```
 
 
