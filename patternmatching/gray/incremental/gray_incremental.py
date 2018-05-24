@@ -89,6 +89,7 @@ class GRayIncremental(GRayMultiple, object):
     # init_graph = get_init_graph(graph)
     super(GRayIncremental, self).__init__(graph, query, directed, cond, time_limit)
     self.elapsed = 0.0  # Elapsed time
+    self.nodes = set()  # Added nodes
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -136,7 +137,7 @@ class GRayIncremental(GRayMultiple, object):
       return
 
     exist_nodes, new_nodes = self.separate_exist_nodes(seeds)
-    print("Seeds: exist: %d, new: %d" % (len(exist_nodes), len(new_nodes)))
+    print("Seeds: total: %d, exist: %d, new: %d" % (len(seeds), len(exist_nodes), len(new_nodes)))
   
     st = time.time()  # Start time
     for nodeset in [new_nodes, exist_nodes]: # newly added vertices have priority
@@ -159,9 +160,10 @@ class GRayIncremental(GRayMultiple, object):
         touched.append(k)
       
         self.process_neighbors(result, touched, nodemap, unprocessed)
-        if 0.0 < self.time_limit < time.time() - st:
-          print("Timeout G-Ray iterations")
-          return
+        ts = time.time()
+        if 0.0 < self.time_limit < ts - st:
+          print("Timeout G-Ray iterations: %f" % (ts - st))
+          # return
   
   
   def get_observation(self):
@@ -197,7 +199,7 @@ class GRayIncremental(GRayMultiple, object):
     self.graph.add_nodes_from(nodes)
     self.graph.add_edges_from(add_edges)
     
-    logging.info("Number of vertices: %d" % self.graph.number_of_nodes())
+    logging.info("Number of vertices: %d" % len(self.nodes))
     logging.info("Number of edges: %d" % self.graph.number_of_edges())
 
     logging.info("---- Start Incremental G-Ray ----")
@@ -222,6 +224,7 @@ class GRayIncremental(GRayMultiple, object):
     end = ed = time.time()
     logging.info("#### Compute G-Ray: %f [s]" % (ed - st))
     self.elapsed = end - start
+    self.nodes.update(nodes)
 
 
   
@@ -427,25 +430,25 @@ class GRayIncremental(GRayMultiple, object):
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
       if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout G-Ray iterations")
+        print("Timeout RWR iterations")
         return
     
     for m in exist_nodes:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
       if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout G-Ray iterations")
+        print("Timeout RWR iterations")
         return
   
   
-  def separate_exist_nodes(self, nodes):
-    """Separate nodes into already exist and newly appear
+  def separate_exist_nodes(self, affected_nodes):
+    """Separate affected nodes into already exist and newly appear
     
-    :param nodes:
+    :param affected_nodes:
     :return:
     """
-    exist_nodes = set(self.graph.nodes()) & set(nodes)  # already exist nodes
-    new_nodes = set(nodes) - exist_nodes  # newly added vertices
+    exist_nodes = self.nodes & set(affected_nodes)  # already exist nodes
+    new_nodes = affected_nodes - exist_nodes  # newly added vertices
     return exist_nodes, new_nodes
 
 

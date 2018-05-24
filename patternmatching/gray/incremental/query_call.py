@@ -163,7 +163,8 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   results = grm.get_results()
   ed = time.time()
   elapsed = ed - st
-  print("Found %d patterns at time %d: %f[s]" % (len(results), 0, elapsed))
+  num_patterns = len(results)
+  print("Found %d patterns at step %d: %f[s], throughput: %f" % (num_patterns, 0, elapsed, num_patterns / elapsed))
   time_list.append(elapsed)
 
   ## Run Incremental G-Ray
@@ -193,7 +194,8 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
       stats.print_stats()
   
     elapsed = ed - st
-    print("Found %d patterns at time %d: %f[s]" % (len(results), t, elapsed))
+    num_patterns = len(results)
+    print("Found %d patterns at step %d: %f[s], throughput: %f" % (num_patterns, t, elapsed, num_patterns/elapsed))
     time_list.append(elapsed)
 
   print("Total G-Ray time: %f" % sum(time_list))
@@ -325,6 +327,9 @@ if __name__ == '__main__':
   conf = ConfigParser()
   conf.read(args[1])
 
+  if conf.get("Log", "profile").lower() == "true":
+    enable_profile = True
+
   gfile = conf.get("G-Ray", "input_json")
   steps = int(conf.get("G-Ray", "steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
@@ -332,6 +337,6 @@ if __name__ == '__main__':
   print gfile
   print qargs
   logging.basicConfig(level=logging.INFO)
-  run_query(gfile, qargs, True, False, steps, time_limit=time_limit)
+  run_query(gfile, qargs, True, False, steps, time_limit)
 
 

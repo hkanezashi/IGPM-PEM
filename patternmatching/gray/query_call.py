@@ -415,6 +415,9 @@ if __name__ == '__main__':
   conf = ConfigParser()
   conf.read(args[1])
   
+  if conf.get("Log", "profile").lower() == "true":
+    enable_profile = True
+  
   gfile = conf.get("G-Ray", "input_json")
   steps = int(conf.get("G-Ray", "steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
@@ -422,6 +425,6 @@ if __name__ == '__main__':
   print gfile
   print qargs
   logging.basicConfig(level=logging.INFO)
-  run_query_step(gfile, qargs, steps, time_limit=time_limit)
+  run_query_step(gfile, qargs, steps, time_limit)
 
 

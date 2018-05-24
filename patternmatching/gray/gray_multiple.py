@@ -128,9 +128,9 @@ class GRayMultiple:
 
       self.process_neighbors(result, touched, nodemap, unprocessed)
       
-      if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout G-Ray iterations")
-        break
+      # if 0.0 < self.time_limit < time.time() - st:
+      #   print("Timeout G-Ray iterations")
+      #   break
 
 
   def run_gray(self):
