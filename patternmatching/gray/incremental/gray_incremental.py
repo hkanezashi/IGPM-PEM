@@ -127,40 +127,41 @@ class GRayIncremental(GRayMultiple, object):
     k = list(self.query.nodes())[0]
     kl = Condition.get_node_label(self.query, k)
     kp = Condition.get_node_props(self.query, k)
-    seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidates
+    seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidate seed vertices
     seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
     # print len(seeds)
     
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
+
+    exist_nodes, new_nodes = self.separate_exist_nodes(seeds)
+    print("Seeds: exist: %d, new: %d" % (len(exist_nodes), len(new_nodes)))
   
     st = time.time()  # Start time
-    for i in seeds:
-      logging.debug("#### Choose Seed: " + str(i))
-      self.current_seed = i
-      result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
-    
-      touched = []
-      nodemap = {}  ## Query Vertex -> Graph Vertex
-      unprocessed = self.query.copy()
-      # unprocessed = nx.MultiDiGraph(self.query) if self.directed else nx.MultiGraph(self.query)
-    
-      il = Condition.get_node_label(self.graph, i)
-      props = Condition.get_node_props(self.graph, i)
-      nodemap[k] = i
-      result.add_node(i)
-      result.nodes[i][LABEL] = il
-      for name, value in props.iteritems():
-        result.nodes[i][name] = value
-    
-      # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
-      touched.append(k)
-    
-      self.process_neighbors(result, touched, nodemap, unprocessed)
-      if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout G-Ray iterations")
-        break
+    for nodeset in [new_nodes, exist_nodes]: # newly added vertices have priority
+      for i in nodeset:
+        logging.debug("#### Choose Seed: " + str(i))
+        self.current_seed = i
+        result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
+        touched = []
+        nodemap = {}  ## Query Vertex -> Graph Vertex
+        unprocessed = self.query.copy()
+      
+        il = Condition.get_node_label(self.graph, i)
+        props = Condition.get_node_props(self.graph, i)
+        nodemap[k] = i
+        result.add_node(i)
+        result.nodes[i][LABEL] = il
+        for name, value in props.iteritems():
+          result.nodes[i][name] = value
+      
+        touched.append(k)
+      
+        self.process_neighbors(result, touched, nodemap, unprocessed)
+        if 0.0 < self.time_limit < time.time() - st:
+          print("Timeout G-Ray iterations")
+          return
   
   
   def get_observation(self):
@@ -419,11 +420,33 @@ class GRayIncremental(GRayMultiple, object):
     OG_PROB = 0.1
     st = time.time()
     rw = rwr.RWR(self.graph)
-    for m in nodes:
+    
+    exist_nodes, prior_nodes = self.separate_exist_nodes(nodes)
+    
+    for m in prior_nodes:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
-      
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout G-Ray iterations")
-        break
+        return
+    
+    for m in exist_nodes:
+      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+      self.graph_rwr[m] = results
+      if 0.0 < self.time_limit < time.time() - st:
+        print("Timeout G-Ray iterations")
+        return
+  
+  
+  def separate_exist_nodes(self, nodes):
+    """Separate nodes into already exist and newly appear
+    
+    :param nodes:
+    :return:
+    """
+    exist_nodes = set(self.graph.nodes()) & set(nodes)  # already exist nodes
+    new_nodes = set(nodes) - exist_nodes  # newly added vertices
+    return exist_nodes, new_nodes
+
+
 
