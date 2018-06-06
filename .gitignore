@@ -7,4 +7,5 @@ data/
 *.gml
 *.png
 *.log
+temp*
 

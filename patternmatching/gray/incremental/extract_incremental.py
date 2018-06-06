@@ -20,7 +20,7 @@ class Extract:
     self.default_value = 1.0 / g.number_of_nodes()
   
   def getRWR(self, i, j):
-    if not i in self.rwr:
+    if i not in self.rwr:
       return self.default_value
     else:
       return self.rwr[i].get(j, self.default_value)

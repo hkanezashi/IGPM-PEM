@@ -84,12 +84,44 @@ def get_init_graph(graph):
   return init_graph
 
 
+def update_added_nodes(nodes, added):
+  """Add nodes to the original node list with keeping timestamp order
+  https://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-whilst-preserving-order
+  :param nodes: Original nodes
+  :param added: Additional nodes
+  :return: Updated nodes
+  """
+  seen = set(nodes)
+  seen_add = seen.add
+  new_added = [n for n in added if not (n in seen or seen_add(n))]
+  print("Original: %d, Added: %d, Total: %d" % (len(nodes), len(added), len(nodes)+len(new_added)))
+  return nodes + new_added
+
+
+def added_nodes_priority(nodes, added):
+  """Sort added node list with high priority for already added one
+  Keep order in original existing node list
+  Example: added_nodes_priority([1, 2, 3, 4, 7, 8], [2, 5, 1, 6]) --> [1, 2, 5, 6]
+  
+  :param nodes: Original existing node list
+  :param added: Additional node list
+  :return: Additional node list with priority (high: already added)
+  """
+  nodes_set = set(nodes)
+  added_set = set(added)
+  already_added = [n for n in nodes if n in added_set]
+  new_added = [n for n in added if not n in nodes_set]
+  assert len(added) == len(already_added) + len(new_added)
+  return already_added + new_added
+
+
+
 class GRayIncremental(GRayMultiple, object):
   def __init__(self, graph, query, directed, cond, time_limit):
     # init_graph = get_init_graph(graph)
     super(GRayIncremental, self).__init__(graph, query, directed, cond, time_limit)
     self.elapsed = 0.0  # Elapsed time
-    self.nodes = set()  # Added nodes
+    self.nodes = list()  # Added nodes (must be sorted by added timestamp)
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -124,46 +156,57 @@ class GRayIncremental(GRayMultiple, object):
 
 
   def process_incremental_gray(self, nodes):
+    """
+    
+    :param nodes: Newly affected nodes for re-computation
+    :return:
+    """
     logging.debug("#### Find Seeds")
     k = list(self.query.nodes())[0]
     kl = Condition.get_node_label(self.query, k)
     kp = Condition.get_node_props(self.query, k)
-    seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidate seed vertices
-    seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
+    seeds = Condition.filter_nodes(self.graph, kl, kp, nodes)  # Find all candidate seed vertices
+    # seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
     # print len(seeds)
     
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
 
-    exist_nodes, new_nodes = self.separate_exist_nodes(seeds)
-    print("Seeds: total: %d, exist: %d, new: %d" % (len(seeds), len(exist_nodes), len(new_nodes)))
+    # exist_nodes, new_nodes = self.separate_exist_nodes(seeds)
+    # print("Seeds: total: %d, exist: %d, new: %d" % (len(seeds), len(exist_nodes), len(new_nodes)))
+    nodeset = added_nodes_priority(self.nodes, seeds)
   
     st = time.time()  # Start time
-    for nodeset in [new_nodes, exist_nodes]: # newly added vertices have priority
-      for i in nodeset:
-        logging.debug("#### Choose Seed: " + str(i))
-        self.current_seed = i
-        result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
-        touched = []
-        nodemap = {}  ## Query Vertex -> Graph Vertex
-        unprocessed = self.query.copy()
+    buf = ""
+    # for nodeset in [exist_nodes, new_nodes]: # already added vertices have priority
+    for i in nodeset:
+      logging.debug("#### Choose Seed: " + str(i))
+      self.current_seed = i
+      result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
+      touched = []
+      nodemap = {}  ## Query Vertex -> Graph Vertex
+      unprocessed = self.query.copy()
+    
+      il = Condition.get_node_label(self.graph, i)
+      props = Condition.get_node_props(self.graph, i)
+      nodemap[k] = i
+      result.add_node(i)
+      result.nodes[i][LABEL] = il
+      for name, value in props.iteritems():
+        result.nodes[i][name] = value
+    
+      touched.append(k)
       
-        il = Condition.get_node_label(self.graph, i)
-        props = Condition.get_node_props(self.graph, i)
-        nodemap[k] = i
-        result.add_node(i)
-        result.nodes[i][LABEL] = il
-        for name, value in props.iteritems():
-          result.nodes[i][name] = value
-      
-        touched.append(k)
-      
-        self.process_neighbors(result, touched, nodemap, unprocessed)
-        ts = time.time()
-        if 0.0 < self.time_limit < ts - st:
-          print("Timeout G-Ray iterations: %f" % (ts - st))
-          # return
+      tmp = self.count
+      self.process_neighbors(result, touched, nodemap, unprocessed)
+      buf += "*" if (tmp < self.count) else "."  # Found new patterns?
+      ts = time.time()
+      if 0.0 < self.time_limit < ts - st:
+        print(buf)
+        print("Timeout G-Ray iterations: %f" % (ts - st))
+        return
+    print buf
   
   
   def get_observation(self):
@@ -196,7 +239,7 @@ class GRayIncremental(GRayMultiple, object):
       nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])  # Affected nodes
     else:
       nodes = affected_nodes
-    self.graph.add_nodes_from(nodes)
+    # self.graph.add_nodes_from(nodes)
     self.graph.add_edges_from(add_edges)
     
     logging.info("Number of vertices: %d" % len(self.nodes))
@@ -224,7 +267,7 @@ class GRayIncremental(GRayMultiple, object):
     end = ed = time.time()
     logging.info("#### Compute G-Ray: %f [s]" % (ed - st))
     self.elapsed = end - start
-    self.nodes.update(nodes)
+    self.nodes = update_added_nodes(self.nodes, nodes)
 
 
   
@@ -424,21 +467,29 @@ class GRayIncremental(GRayMultiple, object):
     st = time.time()
     rw = rwr.RWR(self.graph)
     
-    exist_nodes, prior_nodes = self.separate_exist_nodes(nodes)
+    # exist_nodes, prior_nodes = self.separate_exist_nodes(nodes)
+    recomp_nodes = added_nodes_priority(self.nodes, nodes)
     
-    for m in prior_nodes:
+    for m in recomp_nodes:
       results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       self.graph_rwr[m] = results
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout RWR iterations")
         return
     
-    for m in exist_nodes:
-      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      self.graph_rwr[m] = results
-      if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout RWR iterations")
-        return
+    # for m in prior_nodes:
+    #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+    #   self.graph_rwr[m] = results
+    #   if 0.0 < self.time_limit < time.time() - st:
+    #     print("Timeout RWR iterations")
+    #     return
+    #
+    # for m in exist_nodes:
+    #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+    #   self.graph_rwr[m] = results
+    #   if 0.0 < self.time_limit < time.time() - st:
+    #     print("Timeout RWR iterations")
+    #     return
   
   
   def separate_exist_nodes(self, affected_nodes):
@@ -447,8 +498,9 @@ class GRayIncremental(GRayMultiple, object):
     :param affected_nodes:
     :return:
     """
-    exist_nodes = self.nodes & set(affected_nodes)  # already exist nodes
-    new_nodes = affected_nodes - exist_nodes  # newly added vertices
+    affected_set = set(affected_nodes)
+    exist_nodes = set(self.nodes) & affected_set  # already exist nodes
+    new_nodes = affected_set - exist_nodes  # newly added vertices
     return exist_nodes, new_nodes
 
 

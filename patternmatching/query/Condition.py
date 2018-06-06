@@ -133,8 +133,12 @@ class Condition:
   
   ## Filter nodes in input graph by a label and properties (set them empty if no restrictions)
   @staticmethod
-  def filter_nodes(g, label, prop):
-    nodes = g.nodes()
+  def filter_nodes(g, label, prop, candidates=None):
+    if candidates is None:
+      nodes = g.nodes()
+    else:
+      nodes = candidates
+    
     if label:
       nodes = [i for i in nodes if Condition.get_node_label(g, i) == label]
     for k, v in prop.iteritems():
