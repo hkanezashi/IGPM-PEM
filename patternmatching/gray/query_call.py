@@ -3,7 +3,7 @@ import json
 from networkx.readwrite import json_graph
 import sys
 import time
-from configparser import ConfigParser
+from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
 
 sys.path.append(".")
 
@@ -417,14 +417,23 @@ if __name__ == '__main__':
   
   if conf.get("Log", "profile").lower() == "true":
     enable_profile = True
+    
+  loglevel_str = conf.get("Log", "level").lower()
+  if loglevel_str == "debug":
+    loglevel = logging.DEBUG
+  elif loglevel_str == "info":
+    loglevel = logging.INFO
+  else:
+    loglevel = logging.WARNING
   
   gfile = conf.get("G-Ray", "input_json")
   steps = int(conf.get("G-Ray", "steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
   time_limit = float(conf.get("G-Ray", "time_limit"))
-  print gfile
-  print qargs
-  logging.basicConfig(level=logging.INFO)
+  print("Graph file: %s" % gfile)
+  print("Query args: %s" % str(qargs))
+  print("Log level: %s" % str(loglevel))
+  logging.basicConfig(level=loglevel)
   run_query_step(gfile, qargs, steps, time_limit)
 
 

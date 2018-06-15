@@ -5,9 +5,15 @@ Tong, Hanghang, et al. "Fast best-effort pattern matching in large attributed gr
 Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2007.
 """
 
+import json
 import networkx as nx
+from networkx.readwrite import json_graph
 from math import log
 
+from multiprocessing import Pool, Manager
+import pathos.pools as pp
+
+from patternmatching.gray.parallel.query_call import parse_args
 from patternmatching.gray import rwr, extract
 from patternmatching.query.Condition import *
 from patternmatching.query import QueryResult
@@ -33,9 +39,6 @@ def valid_result(result, query, nodemap):
     if er_num != eq_num:
       return False
 
-  # print nodemap
-  # print query.edges()
-  # print result.edges()
   for qn, rn in nodemap.iteritems():
     qd = query.degree(qn)
     rd = result.degree(rn)
@@ -49,21 +52,235 @@ def valid_result(result, query, nodemap):
 def equal_graphs(g1, g2):
   ns1 = set(g1.nodes())
   ns2 = set(g2.nodes())
-  # logging.debug("Node 1: " + str(ns1))
-  # logging.debug("Node 2: " + str(ns2))
   diff = ns1 ^ ns2
   if diff:  ## Not empty (has differences)
     return False
   
   es1 = set(g1.edges())
   es2 = set(g2.edges())
-  # logging.debug("Edge 1: " + str(es1))
-  # logging.debug("Edge 2: " + str(es2))
   diff = es1 ^ es2
   if diff:
     return False
   
   return True
+
+
+def load_graph(graph_json):
+  with open(graph_json, "r") as f:
+    json_data = json.load(f)
+    graph = json_graph.node_link_graph(json_data)
+  numv = graph.number_of_nodes()
+  nume = graph.number_of_edges()
+  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  return graph
+
+
+def computeRWR(g):
+  graph_rwr = dict()
+  RESTART_PROB = 0.7
+  OG_PROB = 0.1
+  rw = rwr.RWR(g)
+  for m in g.nodes():
+    results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+    graph_rwr[m] = results
+  return graph_rwr
+
+
+
+
+def run_parallel_gray(gfile, qargs, num_proc):
+  """
+  
+  :param gfile: Graph JSON file
+  :param qargs: Query args
+  :param steps: Total steps
+  :param num_proc: Number of processes
+  :return:
+  """
+  
+  manager = Manager()
+  patterns = manager.dict()
+  
+  g = nx.MultiGraph(load_graph(gfile))
+  query, cond, directed, groupby, orderby, aggregates = parse_args(qargs)
+  g_rwr = computeRWR(g)
+  g_ext = extract.Extract(g, g_rwr)
+  g_ext.computeExtract()
+
+
+  def getRWR(i, j):
+    if not i in g_rwr:
+      return 0.0
+    else:
+      return g_rwr[i].get(j, 0.0)
+  
+  def bridge(i, j):
+    return g_ext.getPath(i, j)
+
+  # Find query candidates
+  k = list(query.nodes())[0]
+  kl = Condition.get_node_label(query, k)
+  kp = Condition.get_node_props(query, k)
+  seeds = Condition.filter_nodes(g, kl, kp)  # Find all candidates
+  if not seeds:  ## No seed candidates
+    logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
+    return
+  
+  def process_single_gray(seed):
+    """
+    :param seed: Seed vertex
+    :return:
+    """
+    result = nx.Graph()
+    touched = []
+    nodemap = {}  ## Query Vertex -> Graph Vertex
+    unprocessed = query.copy()
+    il = Condition.get_node_label(g, seed)
+    props = Condition.get_node_props(g, seed)
+    nodemap[k] = seed
+    result.add_node(seed)
+    result.nodes[seed][LABEL] = il
+    for name, value in props.iteritems():
+      result.nodes[seed][name] = value
+    touched.append(k)
+    process_neighbors(g, seed, result, touched, nodemap, unprocessed)
+    
+  
+  def process_neighbors(g, seed, result, touched, nodemap, unproc):
+    snapshot_stack = list()
+    snapshot_stack.append((result, touched, nodemap, unproc))
+    
+    while snapshot_stack:
+      result, touched, nodemap, unproc = snapshot_stack.pop()
+      # print("Result: %d, Unproc: %d" % (result.number_of_edges(), unproc.number_of_edges()))
+      
+      if unproc.number_of_edges() == 0:
+        if valid_result(result, query, nodemap):
+          append_results(seed, result, nodemap)
+          # print("Append results: %s" % str(result.nodes()))
+        continue
+  
+      k = None
+      l = None
+      reversed_edge = False
+      for k_ in touched:
+        ## Edge
+        for l_ in query.neighbors(k_):
+          if not unproc.has_edge(k_, l_):
+            continue
+          l = l_
+          break
+        if l is not None:
+          k = k_
+          break
+    
+      if l is None:  # No more matched vertices
+        continue
+  
+      i = nodemap[k]
+      touched.append(l)
+  
+      #### Find a path or edge (Begin)
+      src, dst = (l, k) if reversed_edge else (k, l)
+  
+      elabel = Condition.get_edge_label(unproc, src, dst)
+      # print elabel
+      if elabel is None:  # Any label is OK
+        eid = None
+        el = ''
+      else:
+        eid = elabel[0]
+        el = elabel[1]
+      Condition.remove_edge_from_id(unproc, src, dst, eid)
+  
+      # Find a neighbor and connecting edge
+      if l in nodemap:
+        jlist = [nodemap[l]]
+      else:
+        jlist = neighbor_expander(i, k, l, result, reversed_edge)  # find j(l) from i(k)
+        if not jlist:  ## No more neighbor candidates
+          continue
+  
+      for j in jlist:
+        g_src, g_dst = (j, i) if reversed_edge else (i, j)
+        if g_src == g_dst:  ## No bridge process necessary
+          continue
+        path = bridge(g_src, g_dst)
+        if not path:
+          continue
+    
+        result_ = nx.MultiGraph(result)
+        touched_ = list(touched)
+        nodemap_ = dict(nodemap)
+        unproc_ = nx.MultiGraph(unproc)
+    
+        if l in nodemap_ and nodemap_[l] != j:  ## Need to replace mapping
+          prevj = nodemap_[l]
+          result_.remove_node(prevj)
+        nodemap_[l] = j
+        props = Condition.get_node_props(g, j)
+        result_.add_node(j)
+        for k, v in props.iteritems():
+          result_.nodes[j][k] = v
+    
+        prev = g_src
+        valid = True
+        for n in path:
+          if not Condition.has_edge_label(g, prev, n, el):
+            valid = False
+            break
+          result_.add_edge(prev, n)
+          prev = n
+        if valid:
+          # print("Result_: %d, Unproc_: %d" % (result_.number_of_edges(), unproc_.number_of_edges()))
+          snapshot_stack.append((result_, touched_, nodemap_, unproc_))
+  
+  
+  def neighbor_expander(i, k, l, result, reversed_edge):
+    ll = Condition.get_node_label(query, l)  # Label of destination
+    max_good = float('-inf')
+    candidates_j = Condition.filter_nodes(g, ll, {})
+    j = []
+  
+    for j_ in candidates_j:
+      if j_ in result.nodes() or j_ == i:
+        continue
+    
+      if reversed_edge:
+        log_good = log(getRWR(j_, i) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
+      else:
+        log_good = log(getRWR(i, j_) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
+    
+      if log_good > max_good:
+        j = [j_]
+        max_good = log_good
+      elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
+        j.append(j_)
+  
+    return j
+  
+  
+  def append_results(seed, result, nodemap):
+    if cond is not None and not cond.eval(result, nodemap):
+      return False  ## Not satisfied with complex condition
+  
+    for r in patterns.values():
+      rg = r.get_graph()
+      if equal_graphs(rg, result):
+        return False
+    qresult = QueryResult.QueryResult(result, nodemap)
+    patterns[seed] = qresult
+    print("Append Results: %s" % str(result.nodes()))
+    return True
+  
+  
+  # pool = Pool(num_proc)
+  pool = pp.ProcessPool(num_proc)
+  pool.map(process_single_gray, seeds, chunksize=50*num_proc)
+  pool.close()
+  pool.join()
+
+  print("Found %d patterns." % len(patterns))
 
 
 
@@ -78,7 +295,7 @@ class GRayParallel:
     self.extracts = {}
     self.cond = cond ## Complex condition
   
-  def run_gray(self):
+  def run_gray(self, num_proc):
     logging.info("---- Start G-Ray ----")
     logging.info("#### Compute RWR")
     self.computeRWR()
@@ -97,29 +314,36 @@ class GRayParallel:
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
     
+    
+    manager = Manager()
+    patterns = manager.dict()  # seed vertex and pattern graph
+    
+    # p = Pool(num_proc)
+    # p.map(self.find_patterns, seeds)
+    
     for i in seeds:
-      logging.debug("#### Choose Seed: " + str(i))
-      result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
-      # self.results.append(result)
-      
-      touched = []
-      nodemap = {}  ## Query Vertex -> Graph Vertex
-      unprocessed = self.query.copy()
-      # unprocessed = nx.MultiDiGraph(self.query) if self.directed else nx.MultiGraph(self.query)
-      
-      il = Condition.get_node_label(self.graph, i)
-      props = Condition.get_node_props(self.graph, i)
-      nodemap[k] = i
-      # result.add_node(i, label=il)
-      result.add_node(i)
-      result.nodes[i][LABEL] = il
-      for name, value in props.iteritems():
-        result.nodes[i][name] = value
-      
-      # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
-      touched.append(k)
-      
-      self.process_neighbors(result, touched, nodemap, unprocessed)
+      self.find_patterns(i, k)
+  
+  
+  def find_patterns(self, seed, q_seed):
+    logging.debug("#### Choose Seed: " + str(seed))
+    result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
+  
+    touched = []
+    nodemap = {}  ## Query Vertex -> Graph Vertex
+    unprocessed = self.query.copy()
+  
+    il = Condition.get_node_label(self.graph, seed)
+    props = Condition.get_node_props(self.graph, seed)
+    nodemap[q_seed] = seed
+    result.add_node(seed)
+    result.nodes[seed][LABEL] = il
+    for name, value in props.iteritems():
+      result.nodes[seed][name] = value
+    touched.append(q_seed)
+    self.process_neighbors(result, touched, nodemap, unprocessed)
+    
+  
   
   def getExtract(self, label):
     if not label in self.extracts:
@@ -139,24 +363,6 @@ class GRayParallel:
     qresult = QueryResult.QueryResult(result, nodemap)
     self.results.append(qresult)
     return True
-
-  """
-  Remove a edge (i -> j) with specified label
-  The argument 'key' is used as label
-  https://networkx.github.io/documentation/networkx-1.9/reference/generated/networkx.MultiGraph.remove_edge.html
-  """
-  """
-  @staticmethod
-  def remove_edge_from_label(g, i, j, label):
-    g.remove_edge(i, j, key=label)
-    assert label != ''
-    print g.edge[i][j], label
-    for k, v in g.edge[i][j].iteritems():
-      if v[LABEL] == label:
-        del g.edge[i][j][k]
-        # print g.edge[i][j]
-        return
-  """
   
   def process_neighbors(self, result, touched, nodemap, unproc):
     if unproc.number_of_edges() == 0:

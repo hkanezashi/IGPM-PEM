@@ -106,7 +106,7 @@ class GRayMultiple:
 
     st = time.time()  # Start time
     for i in seeds:
-      logging.debug("#### Choose Seed: " + str(i))
+      logging.debug("#### Choose Seed: " + str(i) + " " + str(len(self.graph[i])))
       self.current_seed = i
       result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
 
@@ -125,7 +125,8 @@ class GRayMultiple:
 
       # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
       touched.append(k)
-
+      
+      # Start neighbor-expander and bridge
       self.process_neighbors(result, touched, nodemap, unprocessed)
       
       # if 0.0 < self.time_limit < time.time() - st:
@@ -168,12 +169,14 @@ class GRayMultiple:
 
   def append_results(self, result, nodemap):
     if self.cond is not None and not self.cond.eval(result, nodemap):
+      logging.debug("Invalid subgraph")
       return False  ## Not satisfied with complex condition
     
     ## Remove duplicates
     for r in self.results.values():
       rg = r.get_graph()
       if equal_graphs(rg, result):
+        logging.debug("Duplicated subgraph " + str(result.nodes()))
         return False
     """
     seed_nodes = result.nodes()
@@ -204,6 +207,9 @@ class GRayMultiple:
       else:
         logging.debug("No more edges available. Exit G-Ray algorithm.")
         return
+    if result.number_of_edges() > self.query.number_of_edges():
+      logging.debug("Too many edges. Exit G-Ray algorithm.")
+      return
     
     k = None
     l = None
@@ -240,7 +246,7 @@ class GRayMultiple:
           
     
     if l is None:
-      logging.debug("No more vertices with the same label available. Exit G-Ray algorithm.")
+      logging.info("No more vertices with the same label available. Exit G-Ray algorithm.")
       return
     
     logging.debug("#### Start Processing Neighbors from " + str(k) + " count " + str(self.count))
@@ -276,7 +282,7 @@ class GRayMultiple:
     if is_path:
       paths = self.getExtract(el).getPaths(i)
       if not paths:
-        logging.debug("No more paths available. Exit G-Ray algorithm.")
+        logging.info("No more paths available. Exit G-Ray algorithm.")
         return
       for j, path in paths.iteritems():
         result_ = nx.MultiDiGraph(result) if self.directed else nx.MultiGraph(result)
@@ -306,7 +312,7 @@ class GRayMultiple:
       else:
         jlist = self.neighbor_expander(i, k, l, result, reversed_edge)  # find j(l) from i(k)
         if not jlist:  ## No more neighbor candidates
-          logging.debug("No more neighbor vertices available. Exit G-Ray algorithm.")
+          logging.info("No more neighbor vertices available. Exit G-Ray algorithm.")
           return
       
       for j in jlist:

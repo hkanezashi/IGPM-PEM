@@ -8,3 +8,4 @@ metis
 keras
 keras-rl
 gym
+pathos

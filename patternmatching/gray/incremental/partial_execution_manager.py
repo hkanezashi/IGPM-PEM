@@ -6,7 +6,7 @@ Patrial Execution Manager
 import sys
 import time
 import logging
-from configparser import ConfigParser
+from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten

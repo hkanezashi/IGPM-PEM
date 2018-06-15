@@ -6,9 +6,11 @@ from networkx.readwrite import json_graph
 import sys
 import time
 
-sys.path.append(".")
 
-from patternmatching.gray.incremental.gray_incremental import GRayIncremental
+sys.path.append(".")
+sys.setrecursionlimit(1000)
+
+# from patternmatching.gray.parallel.gray_parallel import GRayParallel
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
@@ -129,7 +131,7 @@ def parse_args(query_args):
   return query, cond, directed, groupby, orderby, aggregates
 
 
-def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
+def run_gray_iterations(graph, query, directed, cond, max_steps, num_proc):
   """Repeat incremental G-Ray algorithms
 
   :return: List of patterns
@@ -158,8 +160,8 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
-  grm = GRayIncremental(init_graph, query, directed, cond, time_limit)
-  grm.run_gray()
+  grm = GRayParallel(init_graph, query, directed, cond)
+  grm.run_gray(num_proc)
   results = grm.get_results()
   ed = time.time()
   elapsed = ed - st
@@ -179,9 +181,6 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))
     st = time.time()
-    # nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
-    # affected_nodes = get_recompute_nodes(grm.graph, nodes, 4)
-    # grm.run_incremental_gray(add_edges, affected_nodes)
     grm.run_incremental_gray(add_edges)
     results = grm.get_results()
     ed = time.time()
@@ -206,88 +205,23 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
 
 
 
-def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_steps=100, time_limit=0.0):
+def run_query(graph_json, query_args, max_steps=100, num_proc=4):
   """Parse pattern matching query command and options and execute incremental G-Ray
-
-  :param graph_json: Graph JSON file
-  :param query_args: Query option list
-  :param plot_graph: Whether it plots graphs (default is False)
-  :param show_graph: Whether it shows graphs (default is False)
-  :param max_steps: Number of steps (default is 100)
-  :return:
   """
-  try:
-    import matplotlib.pylab as plt
-  except RuntimeError:
-    print("Matplotlib cannot be imported.")
-    plt = None
-    plot_graph = False
-    show_graph = False
-  
   
   print("Graph JSON file: %s" % graph_json)
   print("Query args: %s" % str(query_args))
-  print("Plot graph: %s" % str(plot_graph))
-  print("Show graph: %s" % str(show_graph))
   print("Number of steps: %d" % max_steps)
 
   query, cond, directed, groupby, orderby, aggregates = parse_args(query_args)
   graph = load_graph(graph_json)
   
-
-  if plot_graph:
-    posg = nx.spring_layout(graph)
-    colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems()]
-    edge_labels = nx.get_edge_attributes(graph, LABEL)
-    nx.draw_networkx(graph, posg, arrows=True, node_color=colors, node_size=1000, font_size=24)
-    nx.draw_networkx_edge_labels(graph, posg, labels = edge_labels)
-    # nx.draw_networkx(query, node_color='c')
-    plt.draw()
-    plt.savefig("graph.png")
-    if show_graph:
-      plt.show()
-    plt.close()
-  
-  
   numv = query.number_of_nodes()
   nume = query.number_of_edges()
   print "Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
-  # print query.nodes()
-  # print query.edges()
-  
-  if plot_graph:
-    colors = [label_color[v] for k, v in nx.get_node_attributes(query, LABEL).iteritems()]
-    posq = nx.spring_layout(query)
-    edge_labels = nx.get_edge_attributes(query, LABEL)
-    nx.draw_networkx(query, posq, arrows=True, node_color=colors, node_size=1000, font_size=24)
-    nx.draw_networkx_edge_labels(query, posq, labels=edge_labels)
-    # nx.draw_networkx(query, node_color='c')
-    plt.draw()
-    plt.savefig("query.png")
-    if show_graph:
-      plt.show()
-    plt.close()
 
 
-  patterns = run_gray_iterations(graph, query, directed, cond, max_steps, time_limit)
-  
-  # for pattern in patterns:
-  #   print pattern.get_graph().edges()
-  
-  if plot_graph:
-    # Export pattern graphs to PNG files
-    num = 0
-    for qresult in patterns:
-      result = qresult.get_graph()
-      colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems() if result.has_node(k)]
-      posr = {n: posg[n] for n in result.nodes()}
-      nx.draw_networkx(result, posr, arrows=True, node_color=colors, node_size=1000, font_size=24)
-      plt.draw()
-      plt.savefig("result" + str(num) + ".png")
-      if show_graph:
-        plt.show()
-      plt.close()
-      num += 1
+  patterns = run_gray_iterations(graph, query, directed, cond, max_steps, num_proc)
   
   
   ## Post-processing (Grouping and Aggregation)
@@ -342,10 +276,11 @@ if __name__ == '__main__':
   steps = int(conf.get("G-Ray", "steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
   time_limit = float(conf.get("G-Ray", "time_limit"))
+  num_proc = int(conf.get("G-Ray", "num_proc"))
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Log level: %s" % str(loglevel))
   logging.basicConfig(level=loglevel)
-  run_query(gfile, qargs, True, False, steps, time_limit)
+  run_query(gfile, qargs, steps, num_proc)
 
 

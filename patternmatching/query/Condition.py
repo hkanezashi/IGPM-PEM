@@ -20,11 +20,10 @@ class Condition:
   """
   @staticmethod
   def get_edge_labels(g, src, dst):
-    edges = g.edges(src, dst, keys=True)
+    edges = g.get_edge_data(src, dst)
     labels = {}
-    # print type(g)
     # print edges
-    for s, d, eid, v in edges:
+    for eid, v in edges.iteritems():
       l = v[LABEL]
       labels[eid] = l
     return labels
