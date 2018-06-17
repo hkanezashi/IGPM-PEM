@@ -9,9 +9,16 @@ import json
 import networkx as nx
 from networkx.readwrite import json_graph
 from math import log
+import time
+from copy import deepcopy
+from functools import partial
 
-from multiprocessing import Pool, Manager
+from multiprocessing.dummy import Pool
+from multiprocessing import Manager, Lock
 import pathos.pools as pp
+
+import sys
+sys.path.append(".")
 
 from patternmatching.gray.parallel.query_call import parse_args
 from patternmatching.gray import rwr, extract
@@ -93,71 +100,154 @@ def run_parallel_gray(gfile, qargs, num_proc):
   
   :param gfile: Graph JSON file
   :param qargs: Query args
-  :param steps: Total steps
   :param num_proc: Number of processes
   :return:
   """
   
   manager = Manager()
   patterns = manager.dict()
+  g_rwr = dict()
+  g_pre = dict()
   
-  g = nx.MultiGraph(load_graph(gfile))
-  query, cond, directed, groupby, orderby, aggregates = parse_args(qargs)
-  g_rwr = computeRWR(g)
-  g_ext = extract.Extract(g, g_rwr)
-  g_ext.computeExtract()
-
-
-  def getRWR(i, j):
-    if not i in g_rwr:
-      return 0.0
-    else:
-      return g_rwr[i].get(j, 0.0)
+  g_ = load_graph(gfile)
+  query_, cond_, _, _, _, _ = parse_args(qargs)
   
-  def bridge(i, j):
-    return g_ext.getPath(i, j)
+  st = time.time()
+  g_rwr_ = computeRWR(g_)
+  for src, dsts in g_rwr_.iteritems():
+    d = dict()
+    for dst, score in dsts.iteritems():
+      d[dst] = score
+    g_rwr[src] = d
+  ed = time.time()
+  print("RWR time: %f" % (ed - st))
+
+  st = time.time()
+  g_ext_ = extract.Extract(g_, g_rwr_)
+  g_ext_.computeExtract()
+  for src, dsts in g_ext_.pre.iteritems():
+    d = dict()
+    for dst, p in dsts.iteritems():
+      d[dst] = p
+    g_pre[src] = d
+  ed = time.time()
+  print("Extract time: %f" % (ed - st))
+
 
   # Find query candidates
-  k = list(query.nodes())[0]
-  kl = Condition.get_node_label(query, k)
-  kp = Condition.get_node_props(query, k)
-  seeds = Condition.filter_nodes(g, kl, kp)  # Find all candidates
+  q_seed_ = list(query_.nodes())[0]
+  kl = Condition.get_node_label(query_, q_seed_)
+  kp = Condition.get_node_props(query_, q_seed_)
+  seeds = Condition.filter_nodes(g_, kl, kp)  # Find all candidates
   if not seeds:  ## No seed candidates
-    logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
+    print("No more seed vertices available. Exit G-Ray algorithm.")
     return
   
-  def process_single_gray(seed):
+  
+  # Split seed list
+  num_seeds = len(seeds)
+  num_members = num_seeds / num_proc
+  seed_lists = list()
+  for i in range(num_proc):
+    st = i * num_members
+    ed = num_seeds if (i == num_proc-1) else (i+1) * num_members
+    seed_lists.append(seeds[st:ed])
+  
+  
+  def process_multiple_gray(seed_list, q_seed, q_args, g_rwr, g_pre):
+    # st = time.time()
+    # g = nx.MultiGraph(g_)
+    # g_rwr = dict(g_rwr_)
+    # g_pre = dict(g_ext_.pre)
+    # ed = time.time()
+    # print ed - st
+    
+    query, cond, _, _, _, _ = parse_args(q_args)
+    # g_rwr_ = g_rwr.copy()
+    # g_pre_ = g_pre.copy()
+    
+    for seed in seed_list:
+      process_single_gray(seed, q_seed, query, cond, g_rwr, g_pre)
+  
+  
+  def process_single_gray(seed, q_seed, query, cond, g_rwr, g_pre):
     """
-    :param seed: Seed vertex
+    :param q_seed: Seed vertex of query graph
+    :param gfile: Graph JSON file path
+    :param cond: Condition parser
+    :param seed: Seed vertex of data graph
     :return:
     """
+
+    def getRWR(i, j):
+      if not i in g_rwr:
+        return 0.0
+      else:
+        return g_rwr[i].get(j, 0.0)
+
+    def bridge(i, j):
+      lst = list()
+      if not i in g_pre:
+        return lst
+      if not j in g_pre[i]:
+        return lst
+      v = j
+      while v != i:
+        lst.append(v)
+        if not v in g_pre[i]:
+          return []
+        v = g_pre[i][v]
+      lst.reverse()
+      return lst
+    
+    def neighbor_expander(i, k, l, ret, rev_edge):
+      # ll = Condition.get_node_label(query, l)  # Label of destination
+      max_good = float('-inf')
+      candidates_j = g_rwr.keys() # Condition.filter_nodes(g, ll, {})
+      j = []
+  
+      for j_ in candidates_j:
+        if j_ in ret.nodes() or j_ == i:
+          continue
+    
+        if rev_edge:
+          log_good = log(getRWR(j_, i) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
+        else:
+          log_good = log(getRWR(i, j_) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
+    
+        if log_good > max_good:
+          j = [j_]
+          max_good = log_good
+        elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
+          j.append(j_)
+      return j
+    
+    
     result = nx.Graph()
     touched = []
     nodemap = {}  ## Query Vertex -> Graph Vertex
-    unprocessed = query.copy()
-    il = Condition.get_node_label(g, seed)
-    props = Condition.get_node_props(g, seed)
-    nodemap[k] = seed
+    unproc = query.copy()
+    # il = Condition.get_node_label(g, seed)
+    # props = Condition.get_node_props(g, seed)
+    nodemap[q_seed] = seed
     result.add_node(seed)
-    result.nodes[seed][LABEL] = il
-    for name, value in props.iteritems():
-      result.nodes[seed][name] = value
-    touched.append(k)
-    process_neighbors(g, seed, result, touched, nodemap, unprocessed)
+    # result.nodes[seed][LABEL] = il
+    # for name, value in props.iteritems():
+    #   result.nodes[seed][name] = value
+    touched.append(q_seed)
     
-  
-  def process_neighbors(g, seed, result, touched, nodemap, unproc):
+    
+    ## Process neighbors
     snapshot_stack = list()
     snapshot_stack.append((result, touched, nodemap, unproc))
     
     while snapshot_stack:
       result, touched, nodemap, unproc = snapshot_stack.pop()
-      # print("Result: %d, Unproc: %d" % (result.number_of_edges(), unproc.number_of_edges()))
       
       if unproc.number_of_edges() == 0:
         if valid_result(result, query, nodemap):
-          append_results(seed, result, nodemap)
-          # print("Append results: %s" % str(result.nodes()))
+          # append_results(cond, seed, result, nodemap)
+          print("Append results: %s" % str(result.nodes()))
         continue
   
       k = None
@@ -184,7 +274,6 @@ def run_parallel_gray(gfile, qargs, num_proc):
       src, dst = (l, k) if reversed_edge else (k, l)
   
       elabel = Condition.get_edge_label(unproc, src, dst)
-      # print elabel
       if elabel is None:  # Any label is OK
         eid = None
         el = ''
@@ -197,7 +286,9 @@ def run_parallel_gray(gfile, qargs, num_proc):
       if l in nodemap:
         jlist = [nodemap[l]]
       else:
+        # lock.acquire()
         jlist = neighbor_expander(i, k, l, result, reversed_edge)  # find j(l) from i(k)
+        # lock.release()
         if not jlist:  ## No more neighbor candidates
           continue
   
@@ -205,7 +296,9 @@ def run_parallel_gray(gfile, qargs, num_proc):
         g_src, g_dst = (j, i) if reversed_edge else (i, j)
         if g_src == g_dst:  ## No bridge process necessary
           continue
+        # lock.acquire()
         path = bridge(g_src, g_dst)
+        # lock.release()
         if not path:
           continue
     
@@ -218,52 +311,29 @@ def run_parallel_gray(gfile, qargs, num_proc):
           prevj = nodemap_[l]
           result_.remove_node(prevj)
         nodemap_[l] = j
-        props = Condition.get_node_props(g, j)
         result_.add_node(j)
-        for k, v in props.iteritems():
-          result_.nodes[j][k] = v
+        ## Property addition is not necessary
+        # props = Condition.get_node_props(g, j)
+        # for k, v in props.iteritems():
+        #   result_.nodes[j][k] = v
     
         prev = g_src
         valid = True
         for n in path:
-          if not Condition.has_edge_label(g, prev, n, el):
-            valid = False
-            break
+          # if not Condition.has_edge_label(g, prev, n, el):
+          #   valid = False
+          #   break
           result_.add_edge(prev, n)
           prev = n
         if valid:
-          # print("Result_: %d, Unproc_: %d" % (result_.number_of_edges(), unproc_.number_of_edges()))
           snapshot_stack.append((result_, touched_, nodemap_, unproc_))
   
   
-  def neighbor_expander(i, k, l, result, reversed_edge):
-    ll = Condition.get_node_label(query, l)  # Label of destination
-    max_good = float('-inf')
-    candidates_j = Condition.filter_nodes(g, ll, {})
-    j = []
   
-    for j_ in candidates_j:
-      if j_ in result.nodes() or j_ == i:
-        continue
-    
-      if reversed_edge:
-        log_good = log(getRWR(j_, i) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
-      else:
-        log_good = log(getRWR(i, j_) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
-    
-      if log_good > max_good:
-        j = [j_]
-        max_good = log_good
-      elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
-        j.append(j_)
-  
-    return j
-  
-  
-  def append_results(seed, result, nodemap):
+  def append_results(cond, seed, result, nodemap):
     if cond is not None and not cond.eval(result, nodemap):
       return False  ## Not satisfied with complex condition
-  
+
     for r in patterns.values():
       rg = r.get_graph()
       if equal_graphs(rg, result):
@@ -274,368 +344,19 @@ def run_parallel_gray(gfile, qargs, num_proc):
     return True
   
   
-  # pool = Pool(num_proc)
-  pool = pp.ProcessPool(num_proc)
-  pool.map(process_single_gray, seeds, chunksize=50*num_proc)
+  st = time.time()
+  pool = Pool(num_proc)
+  # pool = pp.ThreadPool(num_proc)
+  # pool = pp.ProcessPool(num_proc)  ## Multiprocessing is slow
+  
+  pool.map_async(partial(process_multiple_gray, q_seed=q_seed_, q_args=list(qargs), g_rwr=g_rwr, g_pre=g_pre), seed_lists)
+  # query, cond, _, _, _, _ = parse_args(qargs)
+  # pool.map_async(partial(process_single_gray, q_seed=q_seed_, query=query_, cond=cond_, g_rwr=deepcopy(g_rwr), g_pre=deepcopy(g_pre)), seeds)
+  
   pool.close()
   pool.join()
-
-  print("Found %d patterns." % len(patterns))
-
-
-
-class GRayParallel:
-  def __init__(self, graph, query, directed, cond):
-    self.graph = graph
-    self.graph_rwr = {}
-    self.query = query
-    self.directed = directed
-    self.results = [] ## QueryResult list
-    self.count = 0
-    self.extracts = {}
-    self.cond = cond ## Complex condition
-  
-  def run_gray(self, num_proc):
-    logging.info("---- Start G-Ray ----")
-    logging.info("#### Compute RWR")
-    self.computeRWR()
-    logging.info("#### Compute Extract")
-    ext = extract.Extract(self.graph, self.graph_rwr)
-    ext.computeExtract()
-    self.extracts[''] = ext
-
-    logging.debug("#### Find Seeds")
-    k = list(self.query.nodes())[0]
-    kl = Condition.get_node_label(self.query, k)
-    kp = Condition.get_node_props(self.query, k)
-    seeds = Condition.filter_nodes(self.graph, kl, kp)  # Find all candidates
-    # seeds = [s for s in self.graph.nodes() if self.get_node_label(self.graph, s) == kl]  # Find all candidates
-    if not seeds:  ## No seed candidates
-      logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
-      return
-    
-    
-    manager = Manager()
-    patterns = manager.dict()  # seed vertex and pattern graph
-    
-    # p = Pool(num_proc)
-    # p.map(self.find_patterns, seeds)
-    
-    for i in seeds:
-      self.find_patterns(i, k)
-  
-  
-  def find_patterns(self, seed, q_seed):
-    logging.debug("#### Choose Seed: " + str(seed))
-    result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
-  
-    touched = []
-    nodemap = {}  ## Query Vertex -> Graph Vertex
-    unprocessed = self.query.copy()
-  
-    il = Condition.get_node_label(self.graph, seed)
-    props = Condition.get_node_props(self.graph, seed)
-    nodemap[q_seed] = seed
-    result.add_node(seed)
-    result.nodes[seed][LABEL] = il
-    for name, value in props.iteritems():
-      result.nodes[seed][name] = value
-    touched.append(q_seed)
-    self.process_neighbors(result, touched, nodemap, unprocessed)
-    
-  
-  
-  def getExtract(self, label):
-    if not label in self.extracts:
-      ext = extract.Extract(self.graph, self.graph_rwr, label)
-      ext.computeExtract()
-      self.extracts[label] = ext
-    return self.extracts[label]
-
-  def append_results(self, result, nodemap):
-    if self.cond is not None and not self.cond.eval(result, nodemap):
-      return False  ## Not satisfied with complex condition
-    
-    for r in self.results:
-      rg = r.get_graph()
-      if equal_graphs(rg, result):
-        return False
-    qresult = QueryResult.QueryResult(result, nodemap)
-    self.results.append(qresult)
-    return True
-  
-  def process_neighbors(self, result, touched, nodemap, unproc):
-    if unproc.number_of_edges() == 0:
-      if valid_result(result, self.query, nodemap):
-        logging.debug("###### Found pattern " + str(self.count))
-        if self.append_results(result, nodemap):
-          self.count += 1
-        return
-      else:
-        logging.debug("No more edges available. Exit G-Ray algorithm.")
-        return
-    
-    k = None
-    l = None
-    kl = None
-    reversed_edge = False
-    for k_ in touched:
-      kl = Condition.get_node_label(self.query, k_)
-      kp = Condition.get_node_props(self.query, k_)
-      
-      ## Forward Edge
-      for l_ in self.query.neighbors(k_):
-        # print k_, kl, kp, l_, unproc.edges()
-        if not unproc.has_edge(k_, l_):
-          continue
-        l = l_
-        break
-      if l is not None:
-        k = k_
-        # logging.debug("#### Process neighbors " + str(k) + " -> " + str(l))
-        break
-      
-      ## Reversed Edge
-      if self.directed:
-        for l_ in self.query.predecessors(k_):
-          if not unproc.has_edge(l_, k_):
-            continue
-          l = l_
-          break
-        if l is not None:
-          reversed_edge = True
-          k = k_
-          # logging.debug("#### Process neighbors " + str(k) + " <- " + str(l))
-          break
-          
-    
-    if l is None:
-      logging.debug("No more vertices with the same label available. Exit G-Ray algorithm.")
-      return
-    
-    logging.debug("#### Start Processing Neighbors from " + str(k) + " count " + str(self.count))
-    logging.debug("## result: " + " ".join([str(e) for e in result.edges()]))
-    logging.debug("## touchd: " + " ".join([str(n) for n in touched]))
-    logging.debug("## nodemp: " + str(nodemap))
-    logging.debug("## unproc: " + " ".join([str(e) for e in unproc.edges()]))
-    
-    i = nodemap[k]
-    touched.append(l)
-    ll = Condition.get_node_label(self.query, l)
-    lp = Condition.get_node_props(self.query, l)
-    logging.debug("## Find the next vertex " + str(k) + "[" + kl + "] -> " + str(l) + "[" + ll + "]")
-    
-    is_path = False
-    if not reversed_edge and Condition.is_path(self.query, k, l) or reversed_edge and Condition.is_path(self.query, l, k):
-      is_path = True
-    
-    #### Find a path or edge (Begin)
-    src, dst = (l, k) if reversed_edge else (k, l)
-    
-    elabel = Condition.get_edge_label(unproc, src, dst)
-    # print elabel
-    if elabel is None:  # Any label is OK
-      eid = None
-      el = ''
-    else:
-      eid = elabel[0]
-      el = elabel[1]
-    Condition.remove_edge_from_id(unproc, src, dst, eid)
-    
-    
-    if is_path:
-      paths = self.getExtract(el).getPaths(i)
-      if not paths:
-        logging.debug("No more paths available. Exit G-Ray algorithm.")
-        return
-      for j, path in paths.iteritems():
-        result_ = nx.MultiDiGraph(result) if self.directed else nx.MultiGraph(result)
-        touched_ = list(touched)
-        nodemap_ = dict(nodemap)
-        unproc_ = nx.MultiDiGraph(unproc) if self.directed else nx.MultiGraph(unproc)
-    
-        if l in nodemap_ and nodemap_[l] != j:
-          prevj = nodemap_[l]
-          result_.remove_node(prevj)
-    
-        nodemap_[l] = j
-        props = Condition.get_node_props(self.graph, j)
-        result_.add_node(j)
-        for key, value in props.iteritems():
-          result_.nodes[j][key] = value
-        
-        prev = i
-        for n in path:
-          result_.add_edge(prev, n)
-          prev = n
-        self.process_neighbors(result_, touched_, nodemap_, unproc_)
-    
-    else:
-      if l in nodemap:
-        jlist = [nodemap[l]]
-      else:
-        jlist = self.neighbor_expander(i, k, l, result, reversed_edge)  # find j(l) from i(k)
-        if not jlist:  ## No more neighbor candidates
-          logging.debug("No more neighbor vertices available. Exit G-Ray algorithm.")
-          return
-      
-      for j in jlist:
-        g_src, g_dst = (j, i) if reversed_edge else (i, j)
-        if g_src == g_dst:  ## No bridge process necessary
-          continue
-        path = self.bridge(g_src, g_dst)
-        # if len(path) != 1:
-        if not path:
-          logging.debug("## No path found: " + str(g_src) + " -> " + str(g_dst))
-          continue
-        logging.debug("## Find path from " + str(g_src) + " -> " + str(g_dst) + ": " + " ".join(str(n) for n in path))
-        
-        result_ = nx.MultiDiGraph(result) if self.directed else nx.MultiGraph(result)
-        touched_ = list(touched)
-        nodemap_ = dict(nodemap)
-        unproc_ = nx.MultiDiGraph(unproc) if self.directed else nx.MultiGraph(unproc)
-    
-        if l in nodemap_ and nodemap_[l] != j:  ## Need to replace mapping
-          prevj = nodemap_[l]
-          result_.remove_node(prevj)
-        nodemap_[l] = j
-        props = Condition.get_node_props(self.graph, j)
-        result_.add_node(j)
-        # print props
-        for k, v in props.iteritems():
-          result_.nodes[j][k] = v
-        # print result_.nodes(data=True)[j]
-        
-        prev = g_src
-        valid = True
-        for n in path:
-          # print path, prev, n
-          if not Condition.has_edge_label(self.graph, prev, n, el):
-            valid = False
-            break
-          result_.add_edge(prev, n)
-          prev = n
-        if valid:
-          self.process_neighbors(result_, touched_, nodemap_, unproc_)
-    #### Find a path or edge (End)
-    
-  ## List of tuple (extracted graph and node map)
-  def get_results(self):
-    return self.results
-  
-  def seed_finder(self, k):
-    logging.debug("## Seed finder from: " + str(k))
-    kl = Condition.get_node_label(self.query, k)  # Label of source
-    kp = Condition.get_node_props(self.query, k)  # Props of source
-    rwrs = {}
-    
-    for l in self.query.neighbors(k):
-      if l != k:
-        rwrs[l] = self.rwr(self.query, l, k)
-    # logging.debug("#### SeedFinder#RWR: " + str(rwrs))
-    
-    max_good = float('-inf')
-    nodes = self.graph.nodes()
-    seeds = []
-    
-    for i in nodes:
-      ## Exclude node which is already extracted
-      #if Condition.get_node_label(self.graph, i) != kl:
-      if not Condition.satisfies_node(self.graph, i, kl, kp):
-        continue
-      
-      log_good = 0
-      neighbors = self.query.neighbors(k)
-      for l in neighbors:
-        ll = Condition.get_node_label(self.query, l)  # Label of destination
-        lp = Condition.get_node_props(self.query, l)  # Props of destination
-        num = len(neighbors)
-        if l != k:
-          log_sum = 0
-          for j in nodes:
-            if Condition.satisfies_node(self.graph, j, ll, lp):
-              log_sum += log(self.getRWR(j, i) / num)
-          log_good += log_sum / rwrs[l]
-      
-      # logging.debug("#### SeedFinder#log_good: " + str(i) + " " + str(log_good) + " max_good: " + str(max_good))
-      if log_good > max_good:
-        # logging.debug("#### Found max log_good")
-        max_good = log_good
-        seeds = [i]  ## Reset seed candidates
-      elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
-        # logging.debug("#### Found max log_good")
-        seeds.append(i)  ## Add seed candidates
-      
-    logging.debug("SeedFinder#return: " + " ".join([str(seed) for seed in seeds]) + "!")
-    return seeds
-  
-  def neighbor_expander(self, i, k, l, result, reversed_edge):
-    kl = Condition.get_node_label(self.query, k)  # Label of source
-    ll = Condition.get_node_label(self.query, l)  # Label of destination
-    
-    logging.debug("## Neighbor expander from: " + str(i) + "[" + str(k) + "]")
-    max_good = float('-inf')
-    candidates_j = Condition.filter_nodes(self.graph, ll, {})
-    # candidates_i = [i_ for i_ in self.graph.nodes() if self.get_node_label(self.graph, i_) == kl]
-    # candidates_j = [j_ for j_ in self.graph.nodes() if self.get_node_label(self.graph, j_) == ll]
-    j = []
-    # print "candidates", candidates_j
-    # print "result nodes", result.nodes()
-    
-    for j_ in candidates_j:
-      if j_ in result.nodes() or j_ == i:
-        continue
-      
-      if reversed_edge:
-        log_good = log(self.getRWR(j_, i) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
-        # logging.debug("#### NeighborExpander#log_good: " + str(i) + " <- " + str(j_) + " " + str(log_good))
-      else:
-        log_good = log(self.getRWR(i, j_) + 1.0e-10)  # avoid math domain errors when the vertex is unreachable
-        # logging.debug("#### NeighborExpander#log_good: " + str(i) + " -> " + str(j_) + " " + str(log_good))
-      
-      if log_good > max_good:
-        j = [j_]
-        max_good = log_good
-      elif log_good >= max_good - 1.0e-5:  ## Almost same, may be a little smaller due to limited precision
-        j.append(j_)
-      
-    logging.debug("## NeighborExpander#return: " + " ".join([str(j_) for j_ in j]) + "!")
-    return j
-  
-  
-  def bridge(self, i, j, label=None):
-    if label is None:
-      label = ''
-    return self.getExtract(label).getPath(i, j)
-  
-  #def bridge_label(self, i, j, label):
-  #  return self.extracts[label].getPath(i, j)
-
-  
-  
-  def computeRWR(self):
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
-    rw = rwr.RWR(self.graph)
-    for m in self.graph.nodes():
-      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      self.graph_rwr[m] = results
-      # print m, self.graph_rwr[m]
-  
-  def getRWR(self, m, n):
-    return self.graph_rwr[m][n]
-  
-  #def getExtract(self):
-  #  return self.extract
-  
-  @staticmethod
-  def rwr(g, m, n):  # Random walk with restart m -> n in g
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
-    rw = rwr.RWR(g)
-    results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-    logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))
-    return results[n]
+  ed = time.time()
+  print("Parallel G-Ray time: %f" % (ed - st))
 
 
 
