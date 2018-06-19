@@ -224,6 +224,7 @@ class GRayIncremental(GRayMultiple, object):
     :return: Reward value of current step
     """
     reward = len(self.results) / self.elapsed
+    # reward = 100.0 / self.elapsed
     print("Patterns: %d, Time: %f, Reward: %f" % (len(self.results), self.elapsed, reward))
     return min(max_value, reward)
   
@@ -316,6 +317,9 @@ class GRayIncremental(GRayMultiple, object):
       else:
         logging.debug("No more edges available. Exit G-Ray algorithm.")
         return
+    if result.number_of_edges() > self.query.number_of_edges():
+      logging.debug("Too many edges. Exit G-Ray algorithm.")
+      return
     
     k = None
     l = None
@@ -466,13 +470,15 @@ class GRayIncremental(GRayMultiple, object):
     OG_PROB = 0.1
     st = time.time()
     rw = rwr.RWR(self.graph)
+    # rw = rwr.RWR_WCC(self.graph, RESTART_PROB, OG_PROB)
     
-    # exist_nodes, prior_nodes = self.separate_exist_nodes(nodes)
     recomp_nodes = added_nodes_priority(self.nodes, nodes)
     
     for m in recomp_nodes:
-      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      self.graph_rwr[m] = results
+      # results = rw.rwr_single(m)
+      # results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+      # self.graph_rwr[m] = results
+      self.graph_rwr.rwr_single(m)
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout RWR iterations")
         return

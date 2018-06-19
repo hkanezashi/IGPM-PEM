@@ -76,6 +76,9 @@ def valid_result(result, query, nodemap):
   return True
 
 
+RESTART_PROB = 0.7
+OG_PROB = 0.1
+
 class GRayMultiple:
   """
   Class of basic G-Ray implementation (it outputs multiple patterns)
@@ -83,7 +86,7 @@ class GRayMultiple:
   
   def __init__(self, graph, query, directed, cond, time_limit):
     self.graph = graph
-    self.graph_rwr = {}
+    self.graph_rwr = rwr.RWR_WCC(graph, RESTART_PROB, OG_PROB)
     self.query = query
     self.directed = directed
     self.results = dict() ## Seed ID, QueryResult
@@ -103,6 +106,8 @@ class GRayMultiple:
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
+    else:
+      print("Number of seeds: %d" % len(seeds))
 
     st = time.time()  # Start time
     for i in seeds:
@@ -129,9 +134,9 @@ class GRayMultiple:
       # Start neighbor-expander and bridge
       self.process_neighbors(result, touched, nodemap, unprocessed)
       
-      # if 0.0 < self.time_limit < time.time() - st:
-      #   print("Timeout G-Ray iterations")
-      #   break
+      if 0.0 < self.time_limit < time.time() - st:
+        print("Timeout G-Ray iterations")
+        break
 
 
   def run_gray(self):
@@ -312,7 +317,7 @@ class GRayMultiple:
       else:
         jlist = self.neighbor_expander(i, k, l, result, reversed_edge)  # find j(l) from i(k)
         if not jlist:  ## No more neighbor candidates
-          logging.info("No more neighbor vertices available. Exit G-Ray algorithm.")
+          logging.debug("No more neighbor vertices available. Exit G-Ray algorithm.")
           return
       
       for j in jlist:
@@ -418,6 +423,8 @@ class GRayMultiple:
     # print "candidates", candidates_j
     # print "result nodes", result.nodes()
     
+    candidates_j = self.get_connected(i) & set(candidates_j)
+    
     for j_ in candidates_j:
       if j_ in result.nodes() or j_ == i:
         continue
@@ -443,45 +450,44 @@ class GRayMultiple:
     if label is None:
       label = ''
     return self.getExtract(label).getPath(i, j)
-  
-  #def bridge_label(self, i, j, label):
-  #  return self.extracts[label].getPath(i, j)
 
   def computeRWR_batch(self):
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
-    rw = rwr.RWR(self.graph)
-    for m in self.graph.nodes():
-      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      self.graph_rwr[m] = results
+    # rw = rwr.RWR_WCC(self.graph, RESTART_PROB, OG_PROB)
+    # self.graph_rwr = rw.rwr_all()
+    # rw = rwr.RWR(self.graph)
+    # for m in self.graph.nodes():
+    #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+    #   self.graph_rwr[m] = results
+    self.graph_rwr.rwr_all()
   
   
   def computeRWR(self):
     st = time.time()  # Start time
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
     rw = rwr.RWR(self.graph)
     for m in self.graph.nodes():
-      results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      self.graph_rwr[m] = results
+      # results = rw.run_exp(m, RESTART_PROB, OG_PROB)
+      # self.graph_rwr[m] = results
       # print "RWR:", m, self.graph_rwr[m]
+      self.graph_rwr.rwr_single(m)
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout RWR iterations")
         break
   
   def getRWR(self, m, n):
-    if not m in self.graph_rwr:
-      return 0.0
-    else:
-      return self.graph_rwr[m].get(n, 0.0)
+    # if not m in self.graph_rwr:
+    #   return 0.0
+    # else:
+    #   return self.graph_rwr[m].get(n, 0.0)
+    return self.graph_rwr.get_value(m, n)
+  
+  def get_connected(self, n):
+    return set(self.graph_rwr.get_dsts(n))
   
   #def getExtract(self):
   #  return self.extract
   
   @staticmethod
   def rwr(g, m, n):  # Random walk with restart m -> n in g
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
     rw = rwr.RWR(g)
     results = rw.run_exp(m, RESTART_PROB, OG_PROB)
     logging.debug("RWR: " + str(m) + " -> " + str(n) + " " + str(results))

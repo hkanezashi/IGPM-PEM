@@ -8,10 +8,101 @@ Retrieved and simplified some functions from https://github.com/TuftsBCB/Walker/
 import numpy as np
 import networkx as nx
 from sklearn.preprocessing import normalize
-import logging
+from collections import defaultdict
 import sys
 
 CONV_THRESHOLD = 0.000001
+
+
+class RWR_WCC:
+  """RWR optimized with weakly connected component
+  """
+  
+  def __init__(self, g, restart_prob, og_prob):
+    self.g = g
+    self.restart_prob = restart_prob
+    self.og_prob = og_prob
+    self.wccs = nx.weakly_connected_components(g.to_directed())
+    self.num = g.number_of_nodes()
+    self.idmap = dict()
+    for idx, vid in enumerate(g.nodes()):
+      self.idmap[vid] = idx  # Vertex ID --> Index
+    # self.mat = np.zeros((num, num), dtype=float)
+    self.mat = dict()
+  
+  def rwr_single(self, src):
+    # src_i = self.idmap[src]
+    for wcc in self.wccs:
+      if src in wcc:
+        g_ = nx.subgraph(self.g, wcc)
+        r_ = RWR(g_)
+        ret = r_.run_exp(src, self.restart_prob, self.og_prob)
+        # for dst, value in ret.iteritems():
+        #   dst_i = self.idmap[dst]
+        #   self.set_value(src_i, dst_i, value)
+        self.set_values(src, ret)
+  
+  def rwr_all(self):
+    for wcc in self.wccs:
+      g_ = nx.subgraph(self.g, wcc)
+      r_ = RWR(g_)
+      for src in wcc:
+        ret = r_.run_exp(src, self.restart_prob, self.og_prob)
+        self.set_values(src, ret)
+        # src_i = self.idmap[src]
+        # for dst, value in ret.iteritems():
+        #   dst_i = self.idmap[dst]
+        #   # self.mat[src_i, dst_i] = value
+        #   self.set_value(src_i, dst_i, value)
+  
+  # def rwr_single(self, n):
+  #   for wcc in self.wccs:
+  #     if n in wcc:
+  #       g_ = nx.subgraph(self.g, wcc)
+  #       r_ = RWR(g_)
+  #       return r_.run_exp(n, self.restart_prob, self.og_prob)
+  #   return dict()
+  #
+  # def rwr_all(self):
+  #   result = dict()
+  #   for wcc in self.wccs:
+  #     g_ = nx.subgraph(self.g, wcc)
+  #     r_ = RWR(g_)
+  #     for n_ in wcc:
+  #       ret = r_.run_exp(n_, self.restart_prob, self.og_prob)
+  #       result[n_] = ret
+  #   return result
+  
+  def get_dsts(self, src):
+    if not src in self.mat:
+      return set()
+    else:
+      return self.mat[src].keys()
+  
+  def set_values(self, src, value_map):
+    if not src in self.mat:
+      d = defaultdict(float)
+      # d.update(dict.fromkeys(self.g.nodes(), 0.0))
+      self.mat[src] = d
+    self.mat[src].update(value_map)
+  
+  def set_value(self, src, dst, value):
+    if not src in self.mat:
+      d = defaultdict(float)
+      # d.update(dict.fromkeys(self.g.nodes(), 0.0))
+      self.mat[src] = d
+    self.mat[src][dst] = value
+  
+  def get_value(self, src, dst):
+    # src_i = self.idmap[src]
+    # dst_i = self.idmap[dst]
+    if not src in self.mat:
+      d = defaultdict(float)
+      # d.update(dict.fromkeys(self.g.nodes(), 0.0))
+      self.mat[src] = d
+      return 0.0
+    else:
+      return self.mat[src][dst]
 
 
 class RWR:
@@ -68,14 +159,26 @@ class RWR:
     return np.array(p_0)
 
 
-if __name__ == "__main__":
-  g = nx.karate_club_graph()
+def run_karate():
+  # g = nx.karate_club_graph()
+  g = nx.Graph()
+  g.add_edges_from([(1, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 5)])
+  
   r = RWR(g)
   nodes = g.nodes()
   for n in nodes:
     results = r.run_exp(n, 0.7, 0.1)
     print n, results
-    
+  
+  r = RWR_WCC(g, 0.7, 0.1)
+  r.rwr_all()
+  for i in g.nodes():
+    for j in g.nodes():
+      print i, j, r.get_value(i, j)
+  
+
+if __name__ == "__main__":
+  run_karate()
   
   
   

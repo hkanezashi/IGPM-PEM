@@ -20,11 +20,17 @@ class Extract:
     self.default_value = 1.0 / g.number_of_nodes()
   
   def getRWR(self, i, j):
-    if i not in self.rwr:
-      return self.default_value
-    else:
-      return self.rwr[i].get(j, self.default_value)
+    # if i not in self.rwr:
+    #   return self.default_value
+    # else:
+    #   return self.rwr[i].get(j, self.default_value)
     # return self.rwr[i][j]
+    # v = self.rwr.get_value(i, j)
+    # if v == 0.0:
+    #   return self.default_value
+    # else:
+    #   return v
+    return self.rwr.get_value(i, j)
   
   def computeExtract_batch(self):
     """Compute all neighbors and paths

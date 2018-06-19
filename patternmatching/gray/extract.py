@@ -7,12 +7,16 @@ Proceedings of the 12th ACM SIGKDD international conference on Knowledge discove
 
 
 from patternmatching.query.Condition import *
+from rwr import RWR_WCC
 
 MAX_LENGTH = 5
 
 class Extract:
   
   def __init__(self, g, rwr, label=None):
+    """
+    :type rwr: rwr.RWR_WCC
+    """
     self.pre = dict()
     self.rwr = rwr
     self.g = g
@@ -20,10 +24,16 @@ class Extract:
     self.default_value = 1.0 / self.g.number_of_nodes()
   
   def getRWR(self, i, j):
-    if not i in self.rwr:
+    # if not i in self.rwr:
+    #   return self.default_value
+    # else:
+    #   return self.rwr[i].get(j, self.default_value)
+    v = self.rwr.get_value(i, j)
+    if v == 0.0:
       return self.default_value
     else:
-      return self.rwr[i].get(j, self.default_value)
+      return v
+    # return self.rwr.get_value(i, j)
     
   
   def computeExtract(self):
@@ -32,6 +42,7 @@ class Extract:
       self.pre[i] = {}
       self.pre[i][i] = i
       self.computeExtractSingle(i)
+      # print i, self.pre[i]
 
   def computeExtractSingle(self, i):
     d = dict()   ## Distance

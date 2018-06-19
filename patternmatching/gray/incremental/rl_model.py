@@ -55,23 +55,25 @@ def get_recompute_nodes(graph, affected, min_size):
   part, rev_part = recursive_louvain(graph, min_size)
   nodes = set()
   
+  affected_com = set()
+  
   for n in affected:
     if not n in part:
       continue
     gid = part[n]
     mem = set(rev_part[gid])
     nodes.update(mem)
+    affected_com.add(gid)
     
-  return nodes
+  return nodes, len(affected_com), len(rev_part)
 
 
 
 class GraphEnv(gym.Env):
   """Reinforcement learning environment for graph object
-
   """
   
-  def __init__(self, graph, query, cond, max_step, time_limit):
+  def __init__(self, graph, query, cond, max_step, time_limit, window_length):
     """Constructor of an environment object for graph
     
     :param graph: Input data graph
@@ -101,7 +103,7 @@ class GraphEnv(gym.Env):
     nx.set_edge_attributes(init_graph, 0, "add")
 
     self.action_space = Discrete(2)
-    self.observation_space = Box(low=0, high=np.inf, shape=(1,2), dtype=np.int32)  # Number of nodes, edges
+    self.observation_space = Box(low=0, high=np.inf, shape=(window_length, 2), dtype=np.int32)  # Number of nodes, edges
     self.max_reward = 100.0
     self.reward_range = [-1., self.max_reward]
     self.grm = gray_incremental.GRayIncremental(init_graph, query, graph.is_directed(), cond, time_limit)
@@ -120,16 +122,25 @@ class GraphEnv(gym.Env):
       self.node_threshold -= 1
     elif action == 1:
       self.node_threshold += 1
+    print("Community size: %d" % self.node_threshold)
     
     t = self.count
     add_edges = self.add_timestamp_edges[t]
     nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
-    affected_nodes = get_recompute_nodes(self.grm.graph, nodes, self.node_threshold)
+    affected_nodes, affected_com, total_com = get_recompute_nodes(self.grm.graph, nodes, self.node_threshold)
     self.grm.run_incremental_gray(add_edges, affected_nodes)
     self.count += 1
     stop = (self.count >= self.max_step)
     
-    return self.grm.get_observation(), self.grm.get_reward(self.max_reward), stop, {}
+    def get_observation():
+      nodes = self.grm.graph.number_of_nodes()
+      edges = self.grm.graph.number_of_edges()
+      
+      total_density = float(edges) / nodes
+      com_density = float(affected_com) / total_com
+      return np.array([total_density, com_density])
+    
+    return get_observation(), self.grm.get_reward(self.max_reward), stop, {}
     
   
   def reset(self):

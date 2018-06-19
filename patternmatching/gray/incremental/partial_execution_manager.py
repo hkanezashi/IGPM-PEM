@@ -11,9 +11,9 @@ from ConfigParser import ConfigParser  # Use ConfigParser instead of configparse
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
-from rl.policy import BoltzmannQPolicy
+from rl.policy import EpsGreedyQPolicy, GreedyQPolicy, BoltzmannQPolicy
 from rl.agents.dqn import DQNAgent
-from rl.memory import EpisodeParameterMemory
+from rl.memory import EpisodeParameterMemory, SequentialMemory
 
 sys.path.append(".")
 
@@ -40,30 +40,34 @@ train_step = max_step / 2
 test_step = max_step - train_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 
-# init_graph = get_init_graph(graph)
-env = GraphEnv(graph, query, cond, train_step, time_limit)
+
+window_length = 10  # Should be up to 20 (too large length will not converge Q-values)
+env = GraphEnv(graph, query, cond, train_step, time_limit, window_length)
 nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape
 print "Input shape:", input_shape
 
 model = Sequential()
 model.add(Flatten(input_shape=input_shape))
-model.add(Dense(16))
+model.add(Dense(4))
 model.add(Activation('relu'))
-model.add(Dense(16))
+model.add(Dense(4))
 model.add(Activation('relu'))
 model.add(Dense(nb_actions))
 model.add(Activation('linear'))
 print(model.summary())
 print(env.observation_space)
 
-memory = EpisodeParameterMemory(limit=50, window_length=1)
-# agent = CEMAgent(model, nb_actions, memory, nb_steps_warmup=5)
-# agent.compile()
-policy = BoltzmannQPolicy()
-agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=train_step,
+# memory = EpisodeParameterMemory(limit=20, window_length=window_length)  # Non-episodic
+memory = SequentialMemory(limit=20, window_length=window_length)
+
+policy = EpsGreedyQPolicy(eps=0.5)  # random
+# policy = GreedyQPolicy()
+# policy = BoltzmannQPolicy()  # Unstable
+
+agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=train_step,  # A3C TRPO
                target_model_update=1e-2, policy=policy)
-agent.compile(Adam(lr=1e-3), metrics=['mae'])
+agent.compile(Adam(lr=1e-2), metrics=['mae'])
 
 st = time.time()
 agent.fit(env, train_step)
