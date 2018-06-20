@@ -4,16 +4,47 @@ TYPE = '_type'
 PATH = '_path'
 
 import logging
+import networkx as nx
+
+class GraphCondition:
+  
+  def __init__(self, g):
+    """
+    :type g: nx.Graph
+    :param g: Input graph object
+    """
+    # self.g = g
+    self.vertex_labels = nx.get_node_attributes(g, LABEL)
+    self.edge_labels = nx.get_edge_attributes(g, LABEL)
+    self.edge_types = nx.get_edge_attributes(g, TYPE)
+  
+  def get_node_label(self, n):
+    return self.vertex_labels[n]
+  
+  def get_edge_labels(self, src, dst):
+    return self.edge_labels[(src, dst)]
+  
+  def has_edge_label(self, src, dst, label):
+    if label is None or label == '':  ## Any label OK
+      return True
+    labels = self.get_edge_labels(src, dst)
+    return label in labels.values()
+  
+
 
 class Condition:
+  
+  def __init__(self):
+    pass
 
   @staticmethod
   def get_node_label(g, i):
+    # return g[i].get(LABEL, "")
     return g.nodes(data=True)[i].get(LABEL, '')
   
-  @staticmethod
-  def get_edges(g, src, dst):
-    return g.edges[src, dst]
+  # @staticmethod
+  # def get_edges(g, src, dst):
+  #   return g.edges[src, dst]
   
   """
   Get a dict between edge ID and label from specified src and dst
@@ -44,39 +75,39 @@ class Condition:
   """
   Get all edge IDs from specified src, dst and label
   """
-  @staticmethod
-  def get_edges_from_label(g, src, dst, label):
-    edges = g.edges(src, dst, keys=True)
-    eids = []
-    for s, d, k, v in edges:
-      if v is not None and v[LABEL] == label:
-        eids.append(k)
-    return eids
+  # @staticmethod
+  # def get_edges_from_label(g, src, dst, label):
+  #   edges = g.edges(src, dst, keys=True)
+  #   eids = []
+  #   for s, d, k, v in edges:
+  #     if v is not None and v[LABEL] == label:
+  #       eids.append(k)
+  #   return eids
   
   """
   Remove all edges with specified src, dst and label
   """
-  @staticmethod
-  def remove_edges_from_label(g, src, dst, label):
-    eids = Condition.get_edges_from_label(g, src, dst, label)
-    for eid in eids:
-      del g.edges[src, dst, eid]
+  # @staticmethod
+  # def remove_edges_from_label(g, src, dst, label):
+  #   eids = Condition.get_edges_from_label(g, src, dst, label)
+  #   for eid in eids:
+  #     del g.edges[src, dst, eid]
   
   """
   Remove an edge with specified src, dst and label
   """
-  @staticmethod
-  def remove_edge_from_label(g, src, dst, label):
-    labels = Condition.get_edge_labels(g, src, dst)
-    eid = None
-    for k, v in labels.iteritems():
-      if v == label:
-        eid = k
-        break
-    if eid is not None:
-      del g.edges[src, dst, eid]
-    else:
-      logging.warning("No such edges with specified label found: " + label)
+  # @staticmethod
+  # def remove_edge_from_label(g, src, dst, label):
+  #   labels = Condition.get_edge_labels(g, src, dst)
+  #   eid = None
+  #   for k, v in labels.iteritems():
+  #     if v == label:
+  #       eid = k
+  #       break
+  #   if eid is not None:
+  #     del g.edges[src, dst, eid]
+  #   else:
+  #     logging.warning("No such edges with specified label found: " + label)
   
   """
   Remove an edge with specified src, dst and ID

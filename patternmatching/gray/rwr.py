@@ -22,16 +22,21 @@ class RWR_WCC:
     self.g = g
     self.restart_prob = restart_prob
     self.og_prob = og_prob
-    self.wccs = nx.weakly_connected_components(g.to_directed())
+    self.wccs = list(nx.weakly_connected_components(g.to_directed()))
     self.num = g.number_of_nodes()
-    self.idmap = dict()
-    for idx, vid in enumerate(g.nodes()):
-      self.idmap[vid] = idx  # Vertex ID --> Index
+    # self.idmap = dict()
+    # for idx, vid in enumerate(g.nodes()):
+    #   self.idmap[vid] = idx  # Vertex ID --> Index
     # self.mat = np.zeros((num, num), dtype=float)
     self.mat = dict()
   
+  def add_edges(self, edges):
+    self.g.add_edges_from(edges)
+    self.wccs = list(nx.weakly_connected_components(self.g.to_directed()))
+    self.num = self.g.number_of_nodes()
+    
+  
   def rwr_single(self, src):
-    # src_i = self.idmap[src]
     for wcc in self.wccs:
       if src in wcc:
         g_ = nx.subgraph(self.g, wcc)
@@ -41,6 +46,7 @@ class RWR_WCC:
         #   dst_i = self.idmap[dst]
         #   self.set_value(src_i, dst_i, value)
         self.set_values(src, ret)
+        break
   
   def rwr_all(self):
     for wcc in self.wccs:

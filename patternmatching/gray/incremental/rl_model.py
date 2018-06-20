@@ -106,7 +106,7 @@ class GraphEnv(gym.Env):
     self.observation_space = Box(low=0, high=np.inf, shape=(window_length, 2), dtype=np.int32)  # Number of nodes, edges
     self.max_reward = 100.0
     self.reward_range = [-1., self.max_reward]
-    self.grm = gray_incremental.GRayIncremental(init_graph, query, graph.is_directed(), cond, time_limit)
+    self.grm = gray_incremental.GRayIncremental(graph, init_graph, query, graph.is_directed(), cond, time_limit)
     self.grm.run_gray()  # Initialization
     self.max_step = max_step
     self.count = 0

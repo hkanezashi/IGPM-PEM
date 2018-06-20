@@ -149,16 +149,21 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   print("Initialize base graph")
   init_edges = add_timestamp_edges[0]
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
-  init_graph.add_nodes_from(graph.nodes(data=True))
+  # init_graph.add_nodes_from(graph.nodes(data=True))
   init_graph.add_edges_from(init_edges)
+  
+  nodes = init_graph.nodes()
+  subg = nx.subgraph(graph, nodes)
+  init_graph.add_nodes_from(subg.nodes(data=True))
   nx.set_edge_attributes(init_graph, 0, "add")
+  print init_graph.number_of_nodes(), init_graph.number_of_edges()
 
   time_list = list()
 
   ## Run base G-Ray
   print("Run base G-Ray")
   st = time.time()
-  grm = GRayIncremental(init_graph, query, directed, cond, time_limit)
+  grm = GRayIncremental(graph, init_graph, query, directed, cond, time_limit)
   grm.run_gray()
   results = grm.get_results()
   ed = time.time()

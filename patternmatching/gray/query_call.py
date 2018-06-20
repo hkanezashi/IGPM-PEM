@@ -162,7 +162,7 @@ def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
     node_ids = set([e[0] for e in add_edges] + [e[1] for e in add_edges])
     add_nodes = [(n, p) for (n, p) in graph.nodes(data=True) if n in node_ids]
     init_graph.add_nodes_from(add_nodes)
-    print("Effected nodes: %d" % len(add_nodes))
+    print("Affected nodes: %d" % len(add_nodes))
 
     init_graph.add_edges_from(add_edges)
     grm = GRayMultiple(init_graph, query, directed, cond, time_limit)

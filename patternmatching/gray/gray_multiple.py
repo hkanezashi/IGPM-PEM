@@ -96,6 +96,9 @@ class GRayMultiple:
     self.cond = cond ## Complex condition
     self.time_limit = time_limit
 
+  def is_target(self):
+    return self.current_seed == -1
+  
   def process_gray(self):
     logging.debug("#### Find Seeds")
     k = list(self.query.nodes())[0]
@@ -111,8 +114,11 @@ class GRayMultiple:
 
     st = time.time()  # Start time
     for i in seeds:
-      logging.debug("#### Choose Seed: " + str(i) + " " + str(len(self.graph[i])))
+      self.called = 0
       self.current_seed = i
+      
+      if self.is_target():
+        logging.info("#### Choose Seed: " + str(i) + " " + str(len(self.graph[i])))
       result = nx.MultiDiGraph() if self.directed else nx.MultiGraph()
 
       touched = []
@@ -134,6 +140,8 @@ class GRayMultiple:
       # Start neighbor-expander and bridge
       self.process_neighbors(result, touched, nodemap, unprocessed)
       
+      # print("Called %d times from %s with degree %d" % (self.called, str(i), self.graph.degree(i)))
+      
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout G-Ray iterations")
         break
@@ -143,6 +151,8 @@ class GRayMultiple:
     logging.info("---- Start G-Ray ----")
     st = time.time()
     self.computeRWR()
+    # if 14896 in self.graph:
+    #   print 14896, self.graph_rwr.mat[14896]
     ed = time.time()
     logging.info("#### Compute RWR: %f [s]" % (ed - st))
 
@@ -203,6 +213,7 @@ class GRayMultiple:
 
   
   def process_neighbors(self, result, touched, nodemap, unproc):
+    self.called += 1
     if unproc.number_of_edges() == 0:
       if valid_result(result, self.query, nodemap):
         logging.debug("###### Found pattern " + str(self.count))
@@ -254,11 +265,12 @@ class GRayMultiple:
       logging.info("No more vertices with the same label available. Exit G-Ray algorithm.")
       return
     
-    logging.debug("#### Start Processing Neighbors from " + str(k) + " count " + str(self.count))
-    logging.debug("## result: " + " ".join([str(e) for e in result.edges()]))
-    logging.debug("## touchd: " + " ".join([str(n) for n in touched]))
-    logging.debug("## nodemp: " + str(nodemap))
-    logging.debug("## unproc: " + " ".join([str(e) for e in unproc.edges()]))
+    if self.is_target():
+      logging.info("#### Start Processing Neighbors from " + str(k) + " count " + str(self.count))
+      logging.info("## result: " + " ".join([str(e) for e in result.edges()]))
+      logging.info("## touchd: " + " ".join([str(n) for n in touched]))
+      logging.info("## nodemp: " + str(nodemap))
+      logging.info("## unproc: " + " ".join([str(e) for e in unproc.edges()]))
     
     i = nodemap[k]
     touched.append(l)
@@ -458,12 +470,13 @@ class GRayMultiple:
     # for m in self.graph.nodes():
     #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
     #   self.graph_rwr[m] = results
-    self.graph_rwr.rwr_all()
+    self.computeRWR()
+    # self.graph_rwr.rwr_all()
   
   
   def computeRWR(self):
     st = time.time()  # Start time
-    rw = rwr.RWR(self.graph)
+    # rw = rwr.RWR(self.graph)
     for m in self.graph.nodes():
       # results = rw.run_exp(m, RESTART_PROB, OG_PROB)
       # self.graph_rwr[m] = results
@@ -472,6 +485,7 @@ class GRayMultiple:
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout RWR iterations")
         break
+    # print self.graph_rwr.mat
   
   def getRWR(self, m, n):
     # if not m in self.graph_rwr:

@@ -117,11 +117,12 @@ def added_nodes_priority(nodes, added):
 
 
 class GRayIncremental(GRayMultiple, object):
-  def __init__(self, graph, query, directed, cond, time_limit):
+  def __init__(self, orig_graph, graph, query, directed, cond, time_limit):
     # init_graph = get_init_graph(graph)
     super(GRayIncremental, self).__init__(graph, query, directed, cond, time_limit)
     self.elapsed = 0.0  # Elapsed time
     self.nodes = list()  # Added nodes (must be sorted by added timestamp)
+    self.orig_graph = orig_graph
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -167,7 +168,7 @@ class GRayIncremental(GRayMultiple, object):
     kp = Condition.get_node_props(self.query, k)
     seeds = Condition.filter_nodes(self.graph, kl, kp, nodes)  # Find all candidate seed vertices
     # seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
-    # print len(seeds)
+    print "Number of seeds:", len(seeds)
     
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
@@ -241,6 +242,8 @@ class GRayIncremental(GRayMultiple, object):
     else:
       nodes = affected_nodes
     # self.graph.add_nodes_from(nodes)
+    subg = nx.subgraph(self.orig_graph, nodes)
+    self.graph.add_nodes_from(subg.nodes(data=True))
     self.graph.add_edges_from(add_edges)
     
     logging.info("Number of vertices: %d" % len(self.nodes))
@@ -250,7 +253,7 @@ class GRayIncremental(GRayMultiple, object):
     logging.info("Number of re-computation nodes: %d" % len(nodes))
     
     start = st = time.time()
-    self.compute_part_RWR(nodes)
+    self.compute_part_RWR(nodes, add_edges)
     ed = time.time()
     logging.info("#### Compute RWR: %f [s]" % (ed - st))
     
@@ -465,19 +468,16 @@ class GRayIncremental(GRayMultiple, object):
           self.process_neighbors(result_, touched_, nodemap_, unproc_)
     #### Find a path or edge (End)
     
-  def compute_part_RWR(self, nodes):
-    RESTART_PROB = 0.7
-    OG_PROB = 0.1
+  def compute_part_RWR(self, nodes, edges):
+    """Compute incremental RWR
+    """
     st = time.time()
-    rw = rwr.RWR(self.graph)
+    # rw = rwr.RWR(self.graph)
     # rw = rwr.RWR_WCC(self.graph, RESTART_PROB, OG_PROB)
     
     recomp_nodes = added_nodes_priority(self.nodes, nodes)
-    
+    self.graph_rwr.add_edges(edges)
     for m in recomp_nodes:
-      # results = rw.rwr_single(m)
-      # results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      # self.graph_rwr[m] = results
       self.graph_rwr.rwr_single(m)
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout RWR iterations")

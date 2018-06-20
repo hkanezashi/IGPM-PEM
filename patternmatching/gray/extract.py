@@ -15,7 +15,7 @@ class Extract:
   
   def __init__(self, g, rwr, label=None):
     """
-    :type rwr: rwr.RWR_WCC
+    :type rwr: RWR_WCC
     """
     self.pre = dict()
     self.rwr = rwr
@@ -28,12 +28,12 @@ class Extract:
     #   return self.default_value
     # else:
     #   return self.rwr[i].get(j, self.default_value)
-    v = self.rwr.get_value(i, j)
-    if v == 0.0:
-      return self.default_value
-    else:
-      return v
-    # return self.rwr.get_value(i, j)
+    # v = self.rwr.get_value(i, j)
+    # if v == 0.0:
+    #   return self.default_value
+    # else:
+    #   return v
+    return self.rwr.get_value(i, j)
     
   
   def computeExtract(self):
@@ -57,12 +57,14 @@ class Extract:
         l[u] = 0
     
     while V:
-      max_d = 0
+      max_d = 0.0
       u = None # V[0]
       for u_ in V:
         if d[u_] > max_d:
           max_d = d[u_]
           u = u_
+      if u is None:  # Not found
+        return
       V.remove(u)
       X.add(u)
       

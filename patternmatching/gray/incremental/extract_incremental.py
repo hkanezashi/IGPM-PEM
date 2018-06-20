@@ -7,12 +7,16 @@ Proceedings of the 12th ACM SIGKDD international conference on Knowledge discove
 
 
 from patternmatching.query.Condition import *
+from patternmatching.gray.rwr import RWR_WCC
 
 MAX_LENGTH = 5
 
 class Extract:
   
   def __init__(self, g, rwr, label=None):
+    """
+    :type rwr: RWR_WCC
+    """
     self.pre = dict()
     self.rwr = rwr
     self.g = g
@@ -75,12 +79,14 @@ class Extract:
         hops[u] = 0
     
     while V:
-      max_d = 0
+      max_d = 0.0
       u = None # V[0]
       for u_ in V:
         if dist[u_] > max_d:
           max_d = dist[u_]
           u = u_
+      if u is None:
+        return
       V.remove(u)
       finished.add(u)
       
