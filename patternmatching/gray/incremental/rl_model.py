@@ -3,7 +3,7 @@ import community
 import gym
 from gym.spaces import Box, Discrete
 import numpy as np
-
+import statistics
 import gray_incremental
 
 gym.envs.register(id='graphenv-v0', entry_point='GraphEnv')
@@ -110,17 +110,24 @@ class GraphEnv(gym.Env):
     self.grm.run_gray()  # Initialization
     self.max_step = max_step
     self.count = 0
-    self.node_threshold = 10
-    self.min_threshold = 4
+    self.max_threshold, self.node_threshold = GraphEnv.compute_node_threshold(init_graph)
     self.reset()
-    
+  
+  @staticmethod
+  def compute_node_threshold(g):
+    sizes = [len(wcc) for wcc in list(nx.weakly_connected_components(g.to_directed())) if len(wcc) > 1]
+    max_size = max(sizes)
+    # init_size = sum(sizes) / len(sizes)
+    init_size = statistics.median(sizes)
+    print("Max: %d, Init: %d" % (max_size, init_size))
+    return max_size, init_size
     
   
   def step(self, action):
     
-    if action == 0 and self.node_threshold > self.min_threshold:
+    if action == 0:
       self.node_threshold -= 1
-    elif action == 1:
+    elif action == 1 and self.node_threshold < self.max_threshold:
       self.node_threshold += 1
     print("Community size: %d" % self.node_threshold)
     

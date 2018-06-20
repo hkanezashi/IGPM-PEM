@@ -1,4 +1,4 @@
-from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser  # Use ConfigParser instead of configparser
 
 import networkx as nx
 import json
@@ -10,7 +10,7 @@ import time
 sys.path.append(".")
 sys.setrecursionlimit(1000)
 
-# from patternmatching.gray.parallel.gray_parallel import GRayParallel
+from patternmatching.gray.parallel import gray_parallel
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
@@ -31,7 +31,7 @@ def load_graph(graph_json):
   
   numv = graph.number_of_nodes()
   nume = graph.number_of_edges()
-  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  print("Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
   # print graph.nodes()
   # print graph.edges()
   return graph
@@ -218,7 +218,7 @@ def run_query(graph_json, query_args, max_steps=100, num_proc=4):
   
   numv = query.number_of_nodes()
   nume = query.number_of_edges()
-  print "Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  print("Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
 
 
   patterns = run_gray_iterations(graph, query, directed, cond, max_steps, num_proc)
@@ -231,7 +231,7 @@ def run_query(graph_json, query_args, max_steps=100, num_proc=4):
     gr = Grouping.Grouping()
     groups = gr.groupBy(patterns)
     for k, v in groups:
-      print k, len(v)
+      print(k, len(v))
   
   ## OrderBy
   if orderby:
@@ -239,14 +239,14 @@ def run_query(graph_json, query_args, max_steps=100, num_proc=4):
     ordered = od.orderBy(patterns)
     for result in patterns:
       g = result.get_graph()
-      print g.nodes(), g.edges()
+      print(g.nodes(), g.edges())
   
   ## Aggregator
   if aggregates:
     for aggregate in aggregates:
       ag = Aggregator(aggregate)
       ret = ag.get_result(patterns)
-      print aggregate, ret
+      print(aggregate, ret)
   
   return patterns
 

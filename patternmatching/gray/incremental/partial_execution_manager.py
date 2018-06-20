@@ -41,7 +41,7 @@ test_step = max_step - train_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 
 
-window_length = 10  # Should be up to 20 (too large length will not converge Q-values)
+window_length = 5  # Should be up to 20 (too large length will not converge Q-values)
 env = GraphEnv(graph, query, cond, train_step, time_limit, window_length)
 nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape

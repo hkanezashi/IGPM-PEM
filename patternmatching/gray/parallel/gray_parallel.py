@@ -6,16 +6,14 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 """
 
 import json
-import networkx as nx
 from networkx.readwrite import json_graph
 from math import log
 import time
-from copy import deepcopy
 from functools import partial
 
 from multiprocessing.dummy import Pool
-from multiprocessing import Manager, Lock
-import pathos.pools as pp
+from multiprocessing import Manager
+# import pathos.pools as pp
 
 import sys
 sys.path.append(".")
@@ -83,14 +81,11 @@ def load_graph(graph_json):
 
 
 def computeRWR(g):
-  graph_rwr = dict()
   RESTART_PROB = 0.7
   OG_PROB = 0.1
-  rw = rwr.RWR(g)
-  for m in g.nodes():
-    results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-    graph_rwr[m] = results
-  return graph_rwr
+  rw = rwr.RWR_WCC(g, RESTART_PROB, OG_PROB)
+  rw.rwr_all()
+  return rw
 
 
 
@@ -106,7 +101,7 @@ def run_parallel_gray(gfile, qargs, num_proc):
   
   manager = Manager()
   patterns = manager.dict()
-  g_rwr = dict()
+  # g_rwr = dict()
   g_pre = dict()
   
   g_ = load_graph(gfile)
@@ -114,11 +109,11 @@ def run_parallel_gray(gfile, qargs, num_proc):
   
   st = time.time()
   g_rwr_ = computeRWR(g_)
-  for src, dsts in g_rwr_.iteritems():
-    d = dict()
-    for dst, score in dsts.iteritems():
-      d[dst] = score
-    g_rwr[src] = d
+  # for src, dsts in g_rwr_.iteritems():
+  #   d = dict()
+  #   for dst, score in dsts.iteritems():
+  #     d[dst] = score
+  #   g_rwr[src] = d
   ed = time.time()
   print("RWR time: %f" % (ed - st))
 
@@ -173,7 +168,6 @@ def run_parallel_gray(gfile, qargs, num_proc):
   def process_single_gray(seed, q_seed, query, cond, g_rwr, g_pre):
     """
     :param q_seed: Seed vertex of query graph
-    :param gfile: Graph JSON file path
     :param cond: Condition parser
     :param seed: Seed vertex of data graph
     :return:
@@ -349,7 +343,7 @@ def run_parallel_gray(gfile, qargs, num_proc):
   # pool = pp.ThreadPool(num_proc)
   # pool = pp.ProcessPool(num_proc)  ## Multiprocessing is slow
   
-  pool.map_async(partial(process_multiple_gray, q_seed=q_seed_, q_args=list(qargs), g_rwr=g_rwr, g_pre=g_pre), seed_lists)
+  pool.map_async(partial(process_multiple_gray, q_seed=q_seed_, q_args=list(qargs), g_rwr=g_rwr_, g_pre=g_pre), seed_lists)
   # query, cond, _, _, _, _ = parse_args(qargs)
   # pool.map_async(partial(process_single_gray, q_seed=q_seed_, query=query_, cond=cond_, g_rwr=deepcopy(g_rwr), g_pre=deepcopy(g_pre)), seeds)
   

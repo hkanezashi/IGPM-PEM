@@ -221,13 +221,16 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
   :param max_steps: Number of steps (default is 100)
   :return:
   """
-  try:
-    import matplotlib.pylab as plt
-  except RuntimeError:
-    print("Matplotlib cannot be imported.")
-    plt = None
-    plot_graph = False
-    show_graph = False
+  # try:
+  #   import matplotlib.pylab as plt
+  # except RuntimeError:
+  #   print("Matplotlib cannot be imported.")
+  #   plt = None
+  #   plot_graph = False
+  #   show_graph = False
+  plt = None
+  plot_graph = False
+  show_graph = False
   
   
   print("Graph JSON file: %s" % graph_json)

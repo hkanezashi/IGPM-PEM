@@ -14,7 +14,7 @@ import logging
 import pyparsing as pp
 import networkx as nx
 
-from Condition import *
+from patternmatching.query.Condition import *
 
 
 LPAR,RPAR = map(pp.Suppress,"()")
@@ -137,6 +137,6 @@ if __name__ == "__main__":
   g.add_node("y", a="10", b="5", c="2")
   node_map = {"x": "y"} ## Node symbol (query -> output)
   ret = cp.eval(g, node_map)
-  print ret
+  print(ret)
 
 

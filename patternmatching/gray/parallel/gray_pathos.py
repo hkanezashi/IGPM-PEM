@@ -1,6 +1,6 @@
 import csv
 import sys
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 import json
 import networkx as nx
 from networkx.readwrite import json_graph
@@ -21,9 +21,9 @@ def sleepy_squared(x):
   sleep(0.5)
   return x**2
 
-p = Pool(8, servers=('localhost:5678',))
+p = Pool(4)
 res = p.amap(sleepy_squared, range(10))
-print res.get()
+print(res.get())
 
 ################
 
@@ -36,7 +36,7 @@ def load_graph(graph_json):
     graph = json_graph.node_link_graph(json_data)
   numv = graph.number_of_nodes()
   nume = graph.number_of_edges()
-  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  print("Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
   return graph
 
 
@@ -288,7 +288,7 @@ def run_parallel_gray(gfile, qargs, hosts):
   st = time.time()
   pool = Pool(1, servers=servers)
   ret = pool.amap(partial(process_multiple_gray, g_file=gfile, q_seed=q_seed_, q_args=qargs), seed_lists)
-  print ret.get()
+  print(ret.get())
   
   pool.close()
   pool.join()

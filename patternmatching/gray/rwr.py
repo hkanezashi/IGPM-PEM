@@ -174,13 +174,13 @@ def run_karate():
   nodes = g.nodes()
   for n in nodes:
     results = r.run_exp(n, 0.7, 0.1)
-    print n, results
+    print(n, results)
   
   r = RWR_WCC(g, 0.7, 0.1)
   r.rwr_all()
   for i in g.nodes():
     for j in g.nodes():
-      print i, j, r.get_value(i, j)
+      print(i, j, r.get_value(i, j))
   
 
 if __name__ == "__main__":
