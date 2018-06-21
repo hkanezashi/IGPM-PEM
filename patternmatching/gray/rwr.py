@@ -129,6 +129,8 @@ class RWR_WCC:
 class RWR:
   def __init__(self, graph):
     self._build_matrices(graph.to_directed().reverse()) ## TODO: edges need to be reversed.
+    self.restart_prob = 0.7
+    self.og_prob = 0.1
   
   def _build_matrices(self, graph):
     self.OG = graph
@@ -136,7 +138,8 @@ class RWR:
     og_not_normalized = nx.to_numpy_matrix(graph)
     self.og_matrix = self._normalize_cols(og_not_normalized)
   
-  def _normalize_cols(self, og_not_normalized):
+  @staticmethod
+  def _normalize_cols(og_not_normalized):
     return normalize(og_not_normalized, norm='l1', axis=0)
   
   def run_exp(self, source, restart_prob, og_prob):
@@ -169,11 +172,11 @@ class RWR:
     return np.add(no_restart, restart)
   
   def _set_up_p0(self, sources):
-    p_0 = [0] * self.OG.number_of_nodes()
+    p_0 = [0.0] * self.OG.number_of_nodes()
     for source_id in sources:
       try:
         source_index = self.nodelist.index(source_id)
-        p_0[source_index] = 1 / float(len(sources))
+        p_0[source_index] = 1.0 / len(sources)
       except ValueError:
         sys.exit("Source node {} is not in original graph. Source: {}. Exiting.".format(source_id, sources))
     # print p_0

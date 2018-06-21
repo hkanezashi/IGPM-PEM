@@ -6,10 +6,9 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 """
 
 import time
-import networkx as nx
 import numpy as np
 
-from patternmatching.gray import extract, rwr
+from patternmatching.gray import extract
 from patternmatching.gray.incremental.extract_incremental import Extract
 from patternmatching.gray.gray_multiple import GRayMultiple
 from patternmatching.query.Condition import *
@@ -330,7 +329,7 @@ class GRayIncremental(GRayMultiple, object):
     reversed_edge = False
     for k_ in touched:
       kl = Condition.get_node_label(self.query, k_)
-      kp = Condition.get_node_props(self.query, k_)
+      # kp = Condition.get_node_props(self.query, k_)
       
       ## Forward Edge
       for l_ in self.query.neighbors(k_):
@@ -371,7 +370,7 @@ class GRayIncremental(GRayMultiple, object):
     i = nodemap[k]
     touched.append(l)
     ll = Condition.get_node_label(self.query, l)
-    lp = Condition.get_node_props(self.query, l)
+    # lp = Condition.get_node_props(self.query, l)
     logging.debug("## Find the next vertex " + str(k) + "[" + kl + "] -> " + str(l) + "[" + ll + "]")
     
     is_path = False

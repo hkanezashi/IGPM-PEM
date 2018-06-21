@@ -133,8 +133,8 @@ class GraphEnv(gym.Env):
     
     t = self.count
     add_edges = self.add_timestamp_edges[t]
-    nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
-    affected_nodes, affected_com, total_com = get_recompute_nodes(self.grm.graph, nodes, self.node_threshold)
+    add_nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
+    affected_nodes, affected_com, total_com = get_recompute_nodes(self.grm.graph, add_nodes, self.node_threshold)
     self.grm.run_incremental_gray(add_edges, affected_nodes)
     self.count += 1
     stop = (self.count >= self.max_step)

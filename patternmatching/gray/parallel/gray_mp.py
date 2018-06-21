@@ -1,11 +1,11 @@
 # G-Ray for multiple threads
-import itertools
+import networkx as nx
 import json
 import time
 from networkx.readwrite import json_graph
 import sys
-from configparser import ConfigParser
-from multiprocessing import Pool, Process
+from ConfigParser import ConfigParser
+from multiprocessing import Process  # Use Process instead of Pool
 
 sys.path.append(".")
 
@@ -160,20 +160,45 @@ def load_graph(graph_json):
 
 
 
-def chunks(l, n):
-  """Divide a list of nodes `l` in `n` chunks"""
-  l_c = iter(l)
-  while 1:
-    x = list(itertools.islice(l_c, n))
-    if not x:
-      return
-    yield x
+# def chunks(l, n):
+#   """Divide a list of nodes `l` in `n` chunks"""
+#   l_c = iter(l)
+#   while 1:
+#     x = list(itertools.islice(l_c, n))
+#     if not x:
+#       return
+#     yield x
+
+
+def split_list(g, num_proc):
+  seeds = list(g.nodes)
+  num_seeds = len(seeds)
+  num_members = num_seeds / num_proc
+  seed_lists = list()
+  for i in range(num_proc):
+    st = i * num_members
+    ed = num_seeds if (i == num_proc - 1) else (i + 1) * num_members
+    seed_lists.append(seeds[st:ed])
+  return seed_lists
+
+
+def split_list_wcc(g, num_proc):
+  seed_lists = {pid: list() for pid in range(num_proc)}
+  wccs = [l for l in sorted(nx.weakly_connected_components(nx.DiGraph(g)), key=len, reverse=True)]
+  # print len(wccs), sum([len(l) for l in wccs])
+  for wcc in wccs:
+    pid = min(seed_lists.keys(), key=lambda n:len(seed_lists[n]))
+    seed_lists[pid].extend(list(wcc))
+  # for k, v in seed_lists.iteritems():
+  #   print k, len(v)
+  # print len(seed_lists)
+  return seed_lists.values()
 
 
 
 def run_query_part(args):
-  g_file, q_args, time_limit, seeds, pid = args
-  g = load_graph(g_file)
+  g, q_args, time_limit, seeds, pid = args
+  # g = load_graph(g_file)
   query, cond = parse_query(q_args)
   directed = g.is_directed()
   st = time.time()
@@ -193,10 +218,9 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1):
   print("Number of edges: %d" % g.number_of_edges())
   
   procs = list()
-  node_divisor = num_proc
-  node_chunks = list(chunks(g.nodes(), int(g.order() / node_divisor)))
-  for pid in range(node_divisor):
-    procs.append(Process(target=run_query_part, args=((g_file, q_args, time_limit, node_chunks[pid], pid),)))
+  node_chunks = split_list_wcc(g, num_proc) # list(chunks(g.nodes(), int(g.order() / node_divisor)))
+  for pid in range(num_proc):
+    procs.append(Process(target=run_query_part, args=((g, q_args, time_limit, node_chunks[pid], pid),)))
   for proc in procs:
     proc.start()
   print("Started")

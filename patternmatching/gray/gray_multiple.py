@@ -5,11 +5,8 @@ Tong, Hanghang, et al. "Fast best-effort pattern matching in large attributed gr
 Proceedings of the 13th ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2007.
 """
 
-import networkx as nx
 from math import log
 import time
-import cProfile
-import pstats
 
 from patternmatching.gray import rwr, extract
 from patternmatching.query.Condition import *
@@ -94,6 +91,7 @@ class GRayMultiple:
     self.extracts = {}
     self.cond = cond ## Complex condition
     self.time_limit = time_limit
+    self.called = 0
 
   def is_target(self):
     return self.current_seed == -1
@@ -232,7 +230,7 @@ class GRayMultiple:
     kl = None
     for k_ in touched:
       kl = Condition.get_node_label(self.query, k_)
-      kp = Condition.get_node_props(self.query, k_)
+      # kp = Condition.get_node_props(self.query, k_)
       
       ## Forward Edge
       for l_ in self.query.neighbors(k_):
@@ -274,7 +272,7 @@ class GRayMultiple:
     i = nodemap[k]
     touched.append(l)
     ll = Condition.get_node_label(self.query, l)
-    lp = Condition.get_node_props(self.query, l)
+    # lp = Condition.get_node_props(self.query, l)
     logging.debug("## Find the next vertex " + str(k) + "[" + kl + "] -> " + str(l) + "[" + ll + "]")
     
     is_path = False
@@ -403,11 +401,11 @@ class GRayMultiple:
         lp = Condition.get_node_props(self.query, l)  # Props of destination
         num = len(neighbors)
         if l != k:
-          sum = 0
+          log_sum = 0
           for j in nodes:
             if Condition.satisfies_node(self.graph, j, ll, lp):
-              sum += log(self.getRWR(j, i) / num)
-          log_good += sum / rwrs[l]
+              log_sum += log(self.getRWR(j, i) / num)
+          log_good += log_sum / rwrs[l]
       
       # logging.debug("#### SeedFinder#log_good: " + str(i) + " " + str(log_good) + " max_good: " + str(max_good))
       if log_good > max_good:
@@ -422,7 +420,7 @@ class GRayMultiple:
     return seeds
   
   def neighbor_expander(self, i, k, l, result, reversed_edge):
-    kl = Condition.get_node_label(self.query, k)  # Label of source
+    # kl = Condition.get_node_label(self.query, k)  # Label of source
     ll = Condition.get_node_label(self.query, l)  # Label of destination
     
     logging.debug("## Neighbor expander from: " + str(i) + "[" + str(k) + "]")
