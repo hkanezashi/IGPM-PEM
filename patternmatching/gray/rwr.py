@@ -48,6 +48,21 @@ class RWR_WCC:
         self.set_values(src, ret)
         break
   
+  def rwr_set(self, nodes):
+    remain = set(nodes)
+    for wcc in self.wccs:
+      found = set(wcc)
+      if remain & found:
+        g_ = nx.subgraph(self.g, wcc)
+        r_ = RWR(g_)
+        for src in found:
+          ret = r_.run_exp(src, self.restart_prob, self.og_prob)
+          self.set_values(src, ret)
+        remain -= found
+        if not remain:
+          return
+          
+  
   def rwr_all(self):
     for wcc in self.wccs:
       g_ = nx.subgraph(self.g, wcc)

@@ -11,8 +11,7 @@ import time
 import cProfile
 import pstats
 
-import rwr
-import extract
+from patternmatching.gray import rwr, extract
 from patternmatching.query.Condition import *
 from patternmatching.query import QueryResult
 

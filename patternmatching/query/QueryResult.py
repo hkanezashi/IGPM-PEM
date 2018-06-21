@@ -1,6 +1,6 @@
 
 
-from Condition import *
+from patternmatching.query.Condition import *
 
 class QueryResult:
   

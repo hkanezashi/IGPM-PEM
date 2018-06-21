@@ -7,7 +7,7 @@ Proceedings of the 12th ACM SIGKDD international conference on Knowledge discove
 
 
 from patternmatching.query.Condition import *
-from rwr import RWR_WCC
+from patternmatching.gray.rwr import RWR_WCC
 
 MAX_LENGTH = 5
 
