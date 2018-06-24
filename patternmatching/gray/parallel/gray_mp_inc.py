@@ -210,14 +210,38 @@ def run_query_part(args):
 
 
 
-def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1):
+def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10):
   # directed = query.is_directed()
   g = load_graph(g_file)
   print("Number of vertices: %d" % g.number_of_nodes())
   print("Number of edges: %d" % g.number_of_edges())
+
+  ## Extract edge timestamp
+  add_edge_timestamps = nx.get_edge_attributes(g, "add")  # edge, time
+  def dictinvert(d):
+    inv = {}
+    for k, v in d.iteritems():
+      keys = inv.setdefault(v, [])
+      keys.append(k)
+    return inv
+  add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
+  step_list = sorted(list(add_timestamp_edges.keys()))
+
+  ## Initialize base graph
+  print("Initialize base graph")
+  start_step = step_list[0]
+  init_edges = add_timestamp_edges[start_step]
+  init_graph = nx.MultiGraph()
+  init_graph.add_edges_from(init_edges)
+
+  nodes = init_graph.nodes()
+  subg = nx.subgraph(g, nodes)
+  init_graph.add_nodes_from(subg.nodes(data=True))
+  nx.set_edge_attributes(init_graph, 0, "add")
+  print init_graph.number_of_nodes(), init_graph.number_of_edges()
   
   procs = list()
-  node_chunks = split_list(g, num_proc) # list(chunks(g.nodes(), int(g.order() / node_divisor)))
+  node_chunks = split_list(nodes, num_proc) # list(chunks(g.nodes(), int(g.order() / node_divisor)))
   for pid in range(num_proc):
     procs.append(Process(target=run_query_part, args=((g, q_args, time_limit, node_chunks[pid], pid),)))
   for proc in procs:
@@ -226,6 +250,30 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1):
   for proc in procs:
     proc.join()
   print("Finished")
+
+  ## Run Incremental G-Ray
+  print("Run %d steps out of %d" % (max_steps, len(step_list)))
+  for t in step_list[1:max_steps]:
+    print("Run incremental G-Ray: %d" % t)
+  
+    add_edges = add_timestamp_edges[t]
+    print("Add edges: %d" % len(add_edges))
+    seeds = set([src for (src, dst, _) in add_edges] + [dst for (src, dst, _) in add_edges])  # Affected nodes
+
+    st = time.time()
+    procs = list()
+    node_chunks = split_list(seeds, num_proc)
+    for pid in range(num_proc):
+      procs.append(Process(target=run_query_part, args=((g, q_args, time_limit, node_chunks[pid], pid),)))
+    for proc in procs:
+      proc.start()
+    for proc in procs:
+      proc.join()
+    ed = time.time()
+
+    elapsed = ed - st
+    print("Time at step %d: %f[s]" % (t, elapsed))
+  
   
   
 
@@ -244,6 +292,7 @@ if __name__ == "__main__":
   qargs = conf.get("G-Ray", "query").split(" ")
   timelimit = float(conf.get("G-Ray", "time_limit"))
   numproc = int(conf.get("G-Ray", "num_proc"))
+  maxsteps = int(conf.get("G-Ray", "steps"))
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Number of proc: %d" % numproc)
@@ -253,7 +302,7 @@ if __name__ == "__main__":
   # print("Number of edges: %d" % g.number_of_edges())
   # q, cond = parse_query(qargs)
   
-  run_query_parallel(gfile, qargs, timelimit, numproc)
+  run_query_parallel(gfile, qargs, timelimit, numproc, maxsteps)
   
   
 

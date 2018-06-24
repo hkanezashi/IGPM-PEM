@@ -237,7 +237,7 @@ class GRayIncremental(GRayMultiple, object):
     :return:
     """
     if affected_nodes is None:
-      nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])  # Affected nodes
+      nodes = set([src for (src, dst, _) in add_edges] + [dst for (src, dst, _) in add_edges])  # Affected nodes
     else:
       nodes = affected_nodes
     # self.graph.add_nodes_from(nodes)

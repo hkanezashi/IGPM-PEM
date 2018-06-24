@@ -132,9 +132,12 @@ def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
     return inv
   add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
 
+  step_list = sorted(list(add_timestamp_edges.keys()))
+
   ## Initialize base graph
   print("Initialize base graph")
-  init_edges = add_timestamp_edges[0]
+  start_step = step_list[0]
+  init_edges = add_timestamp_edges[start_step]
   node_ids = set([e[0] for e in init_edges] + [e[1] for e in init_edges])
   init_nodes = [(n, p) for (n, p) in graph.nodes(data=True) if n in node_ids]
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
@@ -155,7 +158,8 @@ def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
   time_list.append(elapsed)
 
   ## Run Incremental G-Ray
-  for t in range(1, max_steps):
+  print("Run %d steps out of %d" % (max_steps, len(step_list)))
+  for t in step_list[1:max_steps]:
     print("Run batch G-Ray: %d" % t)
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))

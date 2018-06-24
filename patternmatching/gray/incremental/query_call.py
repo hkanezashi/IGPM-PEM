@@ -145,9 +145,12 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
     return inv
   add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
 
+  step_list = sorted(list(add_timestamp_edges.keys()))
+
   ## Initialize base graph
   print("Initialize base graph")
-  init_edges = add_timestamp_edges[0]
+  start_step = step_list[0]
+  init_edges = add_timestamp_edges[start_step]
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
   # init_graph.add_nodes_from(graph.nodes(data=True))
   init_graph.add_edges_from(init_edges)
@@ -173,7 +176,8 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   time_list.append(elapsed)
 
   ## Run Incremental G-Ray
-  for t in range(1, max_steps):
+  print("Run %d steps out of %d" % (max_steps, len(step_list)))
+  for t in step_list[1:max_steps]:
     print("Run incremental G-Ray: %d" % t)
   
     if enable_profile and t == max_steps - 1:

@@ -9,7 +9,7 @@ import sys
 epoch = datetime.utcfromtimestamp(0)
 def convert_timestamp(ts_str):
   ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
-  return int((ts - epoch).total_seconds()) / (60*60)
+  return int((ts - epoch).total_seconds()) / (24*60*60)  # sec --> day
 
 argv = sys.argv
 if len(argv) < 3:
@@ -19,10 +19,10 @@ if len(argv) < 3:
 input_csv = argv[1]
 output_json = argv[2]
 
-g = nx.MultiDiGraph()
+g = nx.MultiGraph()
 
 with open(input_csv, "r") as rf:
-  reader = csv.reader(rf, quotechar="'", delimiter=";")
+  reader = csv.reader(rf, quotechar="'", delimiter=",")
   for row in reader:
     ts = row[0].replace("\"", "")
     src = int(row[1])
@@ -31,6 +31,11 @@ with open(input_csv, "r") as rf:
     
     g.add_edge(src, dst, step=sec)
 
+tss = nx.get_edge_attributes(g, "step")
+base_step = min(tss.values())
+print("Base step: %d" % base_step)
+new_tss = {k: v - base_step for k, v in tss.iteritems()}
+nx.set_edge_attributes(g, new_tss, "step")
 
 print("Vertices: %d" % g.number_of_nodes())
 print("Edges: %d" % g.number_of_edges())

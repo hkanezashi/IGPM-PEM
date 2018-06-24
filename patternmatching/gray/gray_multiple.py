@@ -16,8 +16,6 @@ from patternmatching.query import QueryResult
 def equal_graphs(g1, g2):
   ns1 = set(g1.nodes())
   ns2 = set(g2.nodes())
-  # logging.debug("Node 1: " + str(ns1))
-  # logging.debug("Node 2: " + str(ns2))
   diff = ns1 ^ ns2
   if diff:  ## Not empty (has differences)
     return False

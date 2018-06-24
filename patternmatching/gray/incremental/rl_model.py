@@ -94,9 +94,12 @@ class GraphEnv(gym.Env):
       return inv
     self.add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
 
+    self.step_list = sorted(list(self.add_timestamp_edges.keys()))
+    start_step = self.step_list[0]
+
     ## Initialize base graph
     print("Initialize base graph")
-    init_edges = self.add_timestamp_edges[0]
+    init_edges = self.add_timestamp_edges[start_step]
     init_graph = nx.Graph()
     init_graph.add_nodes_from(graph.nodes(data=True))
     init_graph.add_edges_from(init_edges)
@@ -132,7 +135,9 @@ class GraphEnv(gym.Env):
     print("Community size: %d" % self.node_threshold)
     
     t = self.count
-    add_edges = self.add_timestamp_edges[t]
+    step = self.step_list[t]
+    print("Step %d, index %d/%d" % (step, t, len(self.step_list)))
+    add_edges = self.add_timestamp_edges[step]
     add_nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
     affected_nodes, affected_com, total_com = get_recompute_nodes(self.grm.graph, add_nodes, self.node_threshold)
     self.grm.run_incremental_gray(add_edges, affected_nodes)
