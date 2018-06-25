@@ -131,6 +131,8 @@ class GraphEnv(gym.Env):
     print("Max: %d, Init: %d" % (max_size, init_size))
     return max_size, init_size
     
+  def rewind(self):
+    self.count = 0
   
   def step(self, action):
     

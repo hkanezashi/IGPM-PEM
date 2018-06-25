@@ -64,9 +64,7 @@ print(env.observation_space)
 # memory = EpisodeParameterMemory(limit=20, window_length=window_length)  # Non-episodic
 memory = SequentialMemory(limit=20, window_length=window_length)
 
-policy = EpsGreedyQPolicy(eps=0.5)  # random
-# policy = GreedyQPolicy()
-# policy = BoltzmannQPolicy()  # Unstable
+policy = GreedyQPolicy()
 
 agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=train_step,  # A3C TRPO
                target_model_update=1e-2, policy=policy)
@@ -78,10 +76,11 @@ ed = time.time()
 print("Training: %f [s]" % (ed - st))
 
 # Reset environment
-env = GraphEnv(graph, query, cond, base_step, test_step, time_limit, window_length)
+env.rewind()
+# env = GraphEnv(graph, query, cond, base_step, test_step, time_limit, window_length)
 
 st = time.time()
-agent.test(env, test_step)
+agent.test(env, nb_episodes=1)
 ed = time.time()
 print("Testing: %f [s]" % (ed - st))
 

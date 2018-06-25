@@ -95,11 +95,6 @@ class RWR_WCC:
       for src in wcc:
         ret = r_.run_exp(src, self.restart_prob, self.og_prob)
         self.set_values(src, ret)
-        # src_i = self.idmap[src]
-        # for dst, value in ret.iteritems():
-        #   dst_i = self.idmap[dst]
-        #   # self.mat[src_i, dst_i] = value
-        #   self.set_value(src_i, dst_i, value)
   
   
   def get_dsts(self, src):
@@ -123,8 +118,6 @@ class RWR_WCC:
     self.mat[src][dst] = value
   
   def get_value(self, src, dst):
-    # src_i = self.idmap[src]
-    # dst_i = self.idmap[dst]
     if not src in self.mat:
       d = defaultdict(float)
       # d.update(dict.fromkeys(self.g.nodes(), 0.0))
@@ -190,7 +183,7 @@ class RWR:
     return np.array(p_0)
 
 
-def run_karate():
+def run_small():
   # g = nx.karate_club_graph()
   g = nx.Graph()
   g.add_edges_from([(1, 2), (2, 3), (3, 1), (4, 5), (5, 6), (6, 5)])
@@ -209,7 +202,7 @@ def run_karate():
   
 
 if __name__ == "__main__":
-  run_karate()
+  run_small()
   
   
   
