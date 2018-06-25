@@ -5,6 +5,7 @@ from gym.spaces import Box, Discrete
 import numpy as np
 import statistics
 import gray_incremental
+import sys
 
 gym.envs.register(id='graphenv-v0', entry_point='GraphEnv')
 
@@ -29,7 +30,7 @@ def recursive_louvain(graph, min_size):
     mem_list = list()
     
     if len(rev_part) == 1:
-      return [rev_part[0]]
+      return [rev_part.values()[0]]
     
     for members in rev_part.values():
       cluster = g.subgraph(members)
@@ -128,7 +129,7 @@ class GraphEnv(gym.Env):
   
   def step(self, action):
     
-    if action == 0:
+    if action == 0 and self.node_threshold > 2:
       self.node_threshold -= 1
     elif action == 1 and self.node_threshold < self.max_threshold:
       self.node_threshold += 1
@@ -152,6 +153,7 @@ class GraphEnv(gym.Env):
       com_density = float(affected_com) / total_com
       return np.array([total_density, com_density])
     
+    sys.stdout.flush()
     return get_observation(), self.grm.get_reward(self.max_reward), stop, {}
     
   

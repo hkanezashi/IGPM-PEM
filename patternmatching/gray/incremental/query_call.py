@@ -1,6 +1,5 @@
 from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
 
-import networkx as nx
 import json
 from networkx.readwrite import json_graph
 import sys
@@ -29,9 +28,7 @@ def load_graph(graph_json):
   
   numv = graph.number_of_nodes()
   nume = graph.number_of_edges()
-  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
-  # print graph.nodes()
-  # print graph.edges()
+  print("Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
   return graph
 
 
@@ -152,7 +149,6 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   start_step = step_list[0]
   init_edges = add_timestamp_edges[start_step]
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
-  # init_graph.add_nodes_from(graph.nodes(data=True))
   init_graph.add_edges_from(init_edges)
   
   nodes = init_graph.nodes()
@@ -188,24 +184,15 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))
     st = time.time()
-    # nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
-    # affected_nodes = get_recompute_nodes(grm.graph, nodes, 4)
-    # grm.run_incremental_gray(add_edges, affected_nodes)
     grm.run_incremental_gray(add_edges)
     results = grm.get_results()
     ed = time.time()
-  
-    if enable_profile and t == max_steps - 1:
-      pr.disable()
-      import pstats
-      stats = pstats.Stats(pr)
-      stats.sort_stats("tottime")
-      stats.print_stats()
   
     elapsed = ed - st
     num_patterns = len(results)
     print("Found %d patterns at step %d: %f[s], throughput: %f" % (num_patterns, t, elapsed, num_patterns/elapsed))
     time_list.append(elapsed)
+    sys.stdout.flush()
 
   print("Total G-Ray time: %f" % sum(time_list))
   print("Average G-Ray time: %f" % (sum(time_list) / len(time_list)))

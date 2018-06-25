@@ -7,7 +7,7 @@ import sys
 import time
 import logging
 from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
-
+import networkx as nx
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
@@ -35,7 +35,7 @@ max_step = int(conf.get("G-Ray", "steps"))
 args = conf.get("G-Ray", "query").split(" ")
 time_limit = float(conf.get("G-Ray", "time_limit"))
 
-graph = load_graph(graph_json)
+graph = nx.Graph(load_graph(graph_json))
 train_step = max_step / 2
 test_step = max_step - train_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(args)

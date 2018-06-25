@@ -23,16 +23,16 @@ with open(input_csv, "r") as rf:
     src = int(row[0])
     dst = int(row[1])
     ts = int(row[2]) / (24 * 60 * 60)
-    g.add_edge(src, dst, t=ts)
+    g.add_edge(src, dst, add=ts)
     count += 1
     if count % 10000 == 0:
       print count
 
-tss = nx.get_edge_attributes(g, "t")
+tss = nx.get_edge_attributes(g, "add")
 base_step = min(tss.values())
 print("Base step: %d" % base_step)
 new_tss = {k: v - base_step for k, v in tss.iteritems()}
-nx.set_edge_attributes(g, new_tss, "t")
+nx.set_edge_attributes(g, new_tss, "add")
 
 print("Vertices: %d" % g.number_of_nodes())
 print("Edges: %d" % g.number_of_edges())

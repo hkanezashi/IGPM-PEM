@@ -29,13 +29,13 @@ with open(input_csv, "r") as rf:
     dst = int(row[2].replace("\"", ""))
     sec = convert_timestamp(ts)
     
-    g.add_edge(src, dst, step=sec)
+    g.add_edge(src, dst, add=sec)
 
-tss = nx.get_edge_attributes(g, "step")
+tss = nx.get_edge_attributes(g, "add")
 base_step = min(tss.values())
 print("Base step: %d" % base_step)
 new_tss = {k: v - base_step for k, v in tss.iteritems()}
-nx.set_edge_attributes(g, new_tss, "step")
+nx.set_edge_attributes(g, new_tss, "add")
 
 print("Vertices: %d" % g.number_of_nodes())
 print("Edges: %d" % g.number_of_edges())

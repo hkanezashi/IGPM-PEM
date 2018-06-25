@@ -159,17 +159,6 @@ def load_graph(graph_json):
   return graph
 
 
-
-# def chunks(l, n):
-#   """Divide a list of nodes `l` in `n` chunks"""
-#   l_c = iter(l)
-#   while 1:
-#     x = list(itertools.islice(l_c, n))
-#     if not x:
-#       return
-#     yield x
-
-
 def split_list(seeds, num_proc):
   num_seeds = len(seeds)
   num_members = num_seeds / num_proc
@@ -184,13 +173,9 @@ def split_list(seeds, num_proc):
 def split_list_wcc(g, num_proc):
   seed_lists = {pid: list() for pid in range(num_proc)}
   wccs = [l for l in sorted(nx.weakly_connected_components(nx.DiGraph(g)), key=len, reverse=True)]
-  # print len(wccs), sum([len(l) for l in wccs])
   for wcc in wccs:
     pid = min(seed_lists.keys(), key=lambda n:len(seed_lists[n]))
     seed_lists[pid].extend(list(wcc))
-  # for k, v in seed_lists.iteritems():
-  #   print k, len(v)
-  # print len(seed_lists)
   return seed_lists.values()
 
 
@@ -247,11 +232,6 @@ if __name__ == "__main__":
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Number of proc: %d" % numproc)
-  
-  # g = load_graph(gfile)
-  # print("Number of vertices: %d" % g.number_of_nodes())
-  # print("Number of edges: %d" % g.number_of_edges())
-  # q, cond = parse_query(qargs)
   
   run_query_parallel(gfile, qargs, timelimit, numproc)
   

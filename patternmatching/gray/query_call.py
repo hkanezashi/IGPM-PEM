@@ -181,6 +181,7 @@ def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
     elapsed = ed - st
     print("Found %d patterns at step %d: %f[s]" % (len(results), t, elapsed))
     time_list.append(elapsed)
+    sys.stdout.flush()
   
   print("Total G-Ray time: %f" % sum(time_list))
   print("Average G-Ray time: %f" % (sum(time_list) / len(time_list)))
