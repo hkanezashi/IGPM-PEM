@@ -191,15 +191,10 @@ def split_list(seeds, num_proc):
 def split_list_wcc(g, num_proc):
   seed_lists = {pid: list() for pid in range(num_proc)}
   wccs = [l for l in sorted(nx.weakly_connected_components(nx.DiGraph(g)), key=len, reverse=True)]
-  # print len(wccs), sum([len(l) for l in wccs])
   for wcc in wccs:
     pid = min(seed_lists.keys(), key=lambda n:len(seed_lists[n]))
     seed_lists[pid].extend(list(wcc))
-  # for k, v in seed_lists.iteritems():
-  #   print k, len(v)
-  # print len(seed_lists)
   return seed_lists.values()
-
 
 
 def run_query_part(args):
@@ -258,7 +253,6 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10)
   print init_graph.number_of_nodes(), init_graph.number_of_edges()
   
   procs = list()
-  # node_chunks = split_list(nodes, num_proc) # list(chunks(g.nodes(), int(g.order() / node_divisor)))
   edge_chunks = split_list(list(init_graph.edges), num_proc)
   for pid in range(num_proc):
     procs.append(Process(target=run_query_part, args=((g, init_graph, q_args, time_limit, edge_chunks[pid], pid),)))
@@ -277,8 +271,7 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10)
     add_edges = add_timestamp_edges[t]
     init_graph.add_edges_from(add_edges)
     print("Add edges: %d" % len(add_edges))
-    # seeds = set([src for (src, dst, _) in add_edges] + [dst for (src, dst, _) in add_edges])  # Affected nodes
-
+    
     st = time.time()
     procs = list()
     edge_chunks = split_list(add_edges, num_proc)
@@ -292,7 +285,6 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10)
 
     elapsed = ed - st
     print("Time at step %d: %f[s]" % (t, elapsed))
-  
   
   
 
@@ -315,11 +307,6 @@ if __name__ == "__main__":
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Number of proc: %d" % numproc)
-  
-  # g = load_graph(gfile)
-  # print("Number of vertices: %d" % g.number_of_nodes())
-  # print("Number of edges: %d" % g.number_of_edges())
-  # q, cond = parse_query(qargs)
   
   run_query_parallel(gfile, qargs, timelimit, numproc, maxsteps)
   

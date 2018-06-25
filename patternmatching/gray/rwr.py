@@ -10,6 +10,7 @@ import networkx as nx
 from sklearn.preprocessing import normalize
 from collections import defaultdict
 import sys
+import pickle
 
 CONV_THRESHOLD = 0.001
 
@@ -29,6 +30,28 @@ class RWR_WCC:
     #   self.idmap[vid] = idx  # Vertex ID --> Index
     # self.mat = np.zeros((num, num), dtype=float)
     self.mat = dict()
+  
+  @staticmethod
+  def load_pickle(fname):
+    with open(fname, mode="rb") as rf:
+      data = pickle.load(rf)
+    g = data["graph"]
+    restart_prob = data["restart_prob"]
+    og_prob = data["og_prob"]
+    mat = data["mat"]
+    
+    rwr_wcc = RWR_WCC(g, restart_prob, og_prob)
+    rwr_wcc.mat = mat
+    return rwr_wcc
+
+  def dump_pickle(self, fname):
+    data = dict()
+    data["graph"] = self.g
+    data["restart_prob"] = self.restart_prob
+    data["og_prob"] = self.og_prob
+    data["mat"] = self.mat
+    with open(fname, mode="wb") as wf:
+      pickle.dump(data, wf)
   
   def add_edges(self, edges):
     self.g.add_edges_from(edges)

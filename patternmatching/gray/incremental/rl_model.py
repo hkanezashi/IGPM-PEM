@@ -101,13 +101,15 @@ class GraphEnv(gym.Env):
     ## Initialize base graph
     print("Initialize base graph")
     init_graph = nx.Graph()
-    start_steps = self.add_timestamp_edges[0:base_step]
+    start_steps = self.step_list[0:base_step]
+    init_edges = set()
     for start_step in start_steps:
-      init_edges = self.add_timestamp_edges[start_step]
-      init_graph.add_nodes_from(graph.nodes(data=True))
-      init_graph.add_edges_from(init_edges)
-      nx.set_edge_attributes(init_graph, 0, "add")
-
+      init_edges.update(set(self.add_timestamp_edges[start_step]))
+      # init_graph.add_nodes_from(graph.nodes(data=True))
+    init_graph.add_edges_from(init_edges)
+    nx.set_edge_attributes(init_graph, 0, "add")
+    
+    print("Setup environment")
     self.action_space = Discrete(2)
     self.observation_space = Box(low=0, high=np.inf, shape=(window_length, 2), dtype=np.int32)  # Number of nodes, edges
     self.max_reward = 100.0

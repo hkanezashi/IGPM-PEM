@@ -2,10 +2,12 @@
 
 .idea/
 data/
+logs/
+conf/
 
 *.pyc
 *.gml
 *.png
 *.log
 temp*
-
+*.pickle

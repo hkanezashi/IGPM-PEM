@@ -194,24 +194,64 @@ def run_query_part(args):
 
 
 
-def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1):
+def run_query_parallel(g_file, q_args, basesteps=100, steps=10, time_limit=0.0, num_proc=1):
   # directed = query.is_directed()
   g = load_graph(g_file)
   print("Number of vertices: %d" % g.number_of_nodes())
   print("Number of edges: %d" % g.number_of_edges())
   
+  init_g = nx.MultiGraph()
+  ## Extract edge timestamp
+  add_edge_timestamps = nx.get_edge_attributes(g, "add")  # edge, time
+  def dictinvert(d):
+    inv = {}
+    for k, v in d.iteritems():
+      keys = inv.setdefault(v, [])
+      keys.append(k)
+    return inv
+  add_timestamp_edges = dictinvert(add_edge_timestamps)  # time, edges
+  step_list = sorted(list(add_timestamp_edges.keys()))
+  
+  print("Initialize base graph")
+  start_steps = step_list[0:basesteps]
+  init_edges = set()
+  for start_step in start_steps:
+    init_edges.update(set(add_timestamp_edges[start_step]))
+  init_g.add_edges_from(init_edges)
+  
+  
   procs = list()
-  node_chunks = split_list(g, num_proc) # list(chunks(g.nodes(), int(g.order() / node_divisor)))
+  node_chunks = split_list(list(init_g.nodes()), num_proc)
   for pid in range(num_proc):
-    procs.append(Process(target=run_query_part, args=((g, q_args, time_limit, node_chunks[pid], pid),)))
+    procs.append(Process(target=run_query_part, args=((init_g, q_args, time_limit, node_chunks[pid], pid),)))
+  st = time.time()
   for proc in procs:
     proc.start()
   print("Started")
   for proc in procs:
     proc.join()
-  print("Finished")
+  ed = time.time()
+  print("Finished: %f" % (ed - st))
   
-  
+  st_step = basesteps + 1
+  ed_step = st_step + steps
+  for t in step_list[st_step:ed_step]:
+    add_edges = add_timestamp_edges[t]
+    init_g.add_edges_from(add_edges)
+
+    node_chunks = split_list(list(init_g.nodes()), num_proc)
+    procs = list()
+    for pid in range(num_proc):
+      procs.append(Process(target=run_query_part, args=((init_g, q_args, time_limit, node_chunks[pid], pid),)))
+    st = time.time()
+    for proc in procs:
+      proc.start()
+    for proc in procs:
+      proc.join()
+    ed = time.time()
+    print("Step %d: %f" % (t, ed - st))
+
+
 
 if __name__ == "__main__":
   
@@ -224,6 +264,7 @@ if __name__ == "__main__":
   conf.read(argv[1])
   
   gfile = conf.get("G-Ray", "input_json")
+  base_steps = int(conf.get("G-Ray", "base_steps"))
   steps = int(conf.get("G-Ray", "steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
   timelimit = float(conf.get("G-Ray", "time_limit"))
@@ -232,7 +273,7 @@ if __name__ == "__main__":
   print("Query args: %s" % str(qargs))
   print("Number of proc: %d" % numproc)
   
-  run_query_parallel(gfile, qargs, timelimit, numproc)
+  run_query_parallel(gfile, qargs, base_steps, steps, timelimit, numproc)
   
   
 
