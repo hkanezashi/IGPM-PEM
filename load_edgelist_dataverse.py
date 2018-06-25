@@ -8,8 +8,9 @@ import sys
 
 epoch = datetime.utcfromtimestamp(0)
 def convert_timestamp(ts_str):
-  ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
-  return int((ts - epoch).total_seconds()) / (24*60*60)  # sec --> day
+  t = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+  return int((t - epoch).total_seconds()) / (24 * 60 * 60)  # sec --> day
+  # return int((t - epoch).total_seconds()) / (60*60)  # sec --> hour
 
 argv = sys.argv
 if len(argv) < 3:

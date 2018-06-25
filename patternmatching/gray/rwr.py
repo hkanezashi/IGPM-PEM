@@ -11,7 +11,7 @@ from sklearn.preprocessing import normalize
 from collections import defaultdict
 import sys
 
-CONV_THRESHOLD = 0.000001
+CONV_THRESHOLD = 0.001
 
 
 class RWR_WCC:
@@ -42,23 +42,25 @@ class RWR_WCC:
         g_ = nx.subgraph(self.g, wcc)
         r_ = RWR(g_)
         ret = r_.run_exp(src, self.restart_prob, self.og_prob)
-        # for dst, value in ret.iteritems():
-        #   dst_i = self.idmap[dst]
-        #   self.set_value(src_i, dst_i, value)
         self.set_values(src, ret)
         break
   
   def rwr_set(self, nodes):
     remain = set(nodes)
+    # count = 0
     for wcc in self.wccs:
       found = set(wcc)
-      if remain & found:
+      rc_set = remain & found
+      if rc_set:
         g_ = nx.subgraph(self.g, wcc)
         r_ = RWR(g_)
-        for src in found:
+        for src in rc_set:
+          # count += 1
           ret = r_.run_exp(src, self.restart_prob, self.og_prob)
           self.set_values(src, ret)
-        remain -= found
+          # if count % 100 == 0:
+          #   print count
+        remain -= rc_set
         if not remain:
           return
           
@@ -76,23 +78,6 @@ class RWR_WCC:
         #   # self.mat[src_i, dst_i] = value
         #   self.set_value(src_i, dst_i, value)
   
-  # def rwr_single(self, n):
-  #   for wcc in self.wccs:
-  #     if n in wcc:
-  #       g_ = nx.subgraph(self.g, wcc)
-  #       r_ = RWR(g_)
-  #       return r_.run_exp(n, self.restart_prob, self.og_prob)
-  #   return dict()
-  #
-  # def rwr_all(self):
-  #   result = dict()
-  #   for wcc in self.wccs:
-  #     g_ = nx.subgraph(self.g, wcc)
-  #     r_ = RWR(g_)
-  #     for n_ in wcc:
-  #       ret = r_.run_exp(n_, self.restart_prob, self.og_prob)
-  #       result[n_] = ret
-  #   return result
   
   def get_dsts(self, src):
     if not src in self.mat:
@@ -179,7 +164,6 @@ class RWR:
         p_0[source_index] = 1.0 / len(sources)
       except ValueError:
         sys.exit("Source node {} is not in original graph. Source: {}. Exiting.".format(source_id, sources))
-    # print p_0
     return np.array(p_0)
 
 

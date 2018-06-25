@@ -476,25 +476,12 @@ class GRayIncremental(GRayMultiple, object):
     
     recomp_nodes = added_nodes_priority(self.nodes, nodes)
     self.graph_rwr.add_edges(edges)
-    for m in recomp_nodes:
-      self.graph_rwr.rwr_single(m)
-      if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout RWR iterations")
-        return
-    
-    # for m in prior_nodes:
-    #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-    #   self.graph_rwr[m] = results
-    #   if 0.0 < self.time_limit < time.time() - st:
-    #     print("Timeout RWR iterations")
-    #     return
-    #
-    # for m in exist_nodes:
-    #   results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-    #   self.graph_rwr[m] = results
-    #   if 0.0 < self.time_limit < time.time() - st:
-    #     print("Timeout RWR iterations")
-    #     return
+    self.graph_rwr.rwr_set(recomp_nodes)
+    # for m in recomp_nodes:
+      # self.graph_rwr.rwr_single(m)
+      # if 0.0 < self.time_limit < time.time() - st:
+      #   print("Timeout RWR iterations")
+      #   return
   
   
   def separate_exist_nodes(self, affected_nodes):

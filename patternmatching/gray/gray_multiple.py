@@ -470,17 +470,13 @@ class GRayMultiple:
   
   
   def computeRWR(self):
-    st = time.time()  # Start time
-    # rw = rwr.RWR(self.graph)
-    for m in self.graph.nodes():
-      # results = rw.run_exp(m, RESTART_PROB, OG_PROB)
-      # self.graph_rwr[m] = results
-      # print "RWR:", m, self.graph_rwr[m]
-      self.graph_rwr.rwr_single(m)
-      if 0.0 < self.time_limit < time.time() - st:
-        print("Timeout RWR iterations")
-        break
-    # print self.graph_rwr.mat
+    self.graph_rwr.rwr_set(self.graph.nodes())
+    # st = time.time()  # Start time
+    # for m in self.graph.nodes():
+    #   self.graph_rwr.rwr_single(m)
+    #   if 0.0 < self.time_limit < time.time() - st:
+    #     print("Timeout RWR iterations")
+    #     break
   
   def getRWR(self, m, n):
     # if not m in self.graph_rwr:

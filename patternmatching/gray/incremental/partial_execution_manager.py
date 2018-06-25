@@ -31,6 +31,7 @@ if len(argv) < 2:
 conf = ConfigParser()
 conf.read(argv[1])
 graph_json = conf.get("G-Ray", "input_json")
+base_step = int(conf.get("G-Ray", "base_steps"))
 max_step = int(conf.get("G-Ray", "steps"))
 args = conf.get("G-Ray", "query").split(" ")
 time_limit = float(conf.get("G-Ray", "time_limit"))
@@ -42,7 +43,7 @@ query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 
 
 window_length = 5  # Should be up to 20 (too large length will not converge Q-values)
-env = GraphEnv(graph, query, cond, train_step, time_limit, window_length)
+env = GraphEnv(graph, query, cond, base_step, train_step, time_limit, window_length)
 nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape
 print "Input shape:", input_shape

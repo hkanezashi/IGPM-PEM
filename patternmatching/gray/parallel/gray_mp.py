@@ -1,5 +1,4 @@
 # G-Ray for multiple threads
-import networkx as nx
 import json
 import time
 from networkx.readwrite import json_graph

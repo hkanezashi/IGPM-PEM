@@ -74,7 +74,7 @@ class GraphEnv(gym.Env):
   """Reinforcement learning environment for graph object
   """
   
-  def __init__(self, graph, query, cond, max_step, time_limit, window_length):
+  def __init__(self, graph, query, cond, base_step, max_step, time_limit, window_length):
     """Constructor of an environment object for graph
     
     :param graph: Input data graph
@@ -100,11 +100,13 @@ class GraphEnv(gym.Env):
 
     ## Initialize base graph
     print("Initialize base graph")
-    init_edges = self.add_timestamp_edges[start_step]
     init_graph = nx.Graph()
-    init_graph.add_nodes_from(graph.nodes(data=True))
-    init_graph.add_edges_from(init_edges)
-    nx.set_edge_attributes(init_graph, 0, "add")
+    start_steps = self.add_timestamp_edges[0:base_step]
+    for start_step in start_steps:
+      init_edges = self.add_timestamp_edges[start_step]
+      init_graph.add_nodes_from(graph.nodes(data=True))
+      init_graph.add_edges_from(init_edges)
+      nx.set_edge_attributes(init_graph, 0, "add")
 
     self.action_space = Discrete(2)
     self.observation_space = Box(low=0, high=np.inf, shape=(window_length, 2), dtype=np.int32)  # Number of nodes, edges
@@ -112,6 +114,7 @@ class GraphEnv(gym.Env):
     self.reward_range = [-1., self.max_reward]
     self.grm = gray_incremental.GRayIncremental(graph, init_graph, query, graph.is_directed(), cond, time_limit)
     self.grm.run_gray()  # Initialization
+    self.base_step = base_step
     self.max_step = max_step
     self.count = 0
     self.max_threshold, self.node_threshold = GraphEnv.compute_node_threshold(init_graph)
@@ -135,7 +138,7 @@ class GraphEnv(gym.Env):
       self.node_threshold += 1
     print("Community size: %d" % self.node_threshold)
     
-    t = self.count
+    t = self.count + self.base_step
     step = self.step_list[t]
     print("Step %d, index %d/%d" % (step, t, len(self.step_list)))
     add_edges = self.add_timestamp_edges[step]

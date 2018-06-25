@@ -20,7 +20,7 @@ label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
 enable_profile = False
 
 
-def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
+def run_query_step(graph_json, query_args, base_steps=100, max_steps=10, time_limit=0.0):
   
   vsymbols = set()  ## Vertices (symbol)
   esymbols = {}  ## Edges (symbol -> vertex tuple)
@@ -136,13 +136,14 @@ def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
 
   ## Initialize base graph
   print("Initialize base graph")
-  start_step = step_list[0]
-  init_edges = add_timestamp_edges[start_step]
-  node_ids = set([e[0] for e in init_edges] + [e[1] for e in init_edges])
-  init_nodes = [(n, p) for (n, p) in graph.nodes(data=True) if n in node_ids]
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
-  init_graph.add_nodes_from(init_nodes)
-  init_graph.add_edges_from(init_edges)
+  start_steps = step_list[0:base_steps]
+  for start_step in start_steps:
+    init_edges = add_timestamp_edges[start_step]
+    node_ids = set([e[0] for e in init_edges] + [e[1] for e in init_edges])
+    init_nodes = [(n, p) for (n, p) in graph.nodes(data=True) if n in node_ids]
+    init_graph.add_nodes_from(init_nodes)
+    init_graph.add_edges_from(init_edges)
 
   time_list = list()
 
@@ -158,8 +159,10 @@ def run_query_step(graph_json, query_args, max_steps=100, time_limit=0.0):
   time_list.append(elapsed)
 
   ## Run Incremental G-Ray
-  print("Run %d steps out of %d" % (max_steps, len(step_list)))
-  for t in step_list[1:max_steps]:
+  print("Run %d step / %d" % (max_steps, len(step_list)))
+  st_step = base_steps + 1
+  ed_step = st_step + max_steps
+  for t in step_list[st_step:ed_step]:
     print("Run batch G-Ray: %d" % t)
     add_edges = add_timestamp_edges[t]
     print("Add edges: %d" % len(add_edges))
@@ -433,12 +436,13 @@ if __name__ == '__main__':
   
   gfile = conf.get("G-Ray", "input_json")
   steps = int(conf.get("G-Ray", "steps"))
+  basesteps = int(conf.get("G-Ray", "base_steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
   time_limit = float(conf.get("G-Ray", "time_limit"))
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Log level: %s" % str(loglevel))
   logging.basicConfig(level=loglevel)
-  run_query_step(gfile, qargs, steps, time_limit)
+  run_query_step(gfile, qargs, basesteps, steps, time_limit)
 
 

@@ -126,7 +126,7 @@ def parse_args(query_args):
   return query, cond, directed, groupby, orderby, aggregates
 
 
-def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
+def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, time_limit):
   """Repeat incremental G-Ray algorithms
 
   :return: List of patterns
@@ -146,10 +146,11 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
 
   ## Initialize base graph
   print("Initialize base graph")
-  start_step = step_list[0]
-  init_edges = add_timestamp_edges[start_step]
   init_graph = nx.MultiDiGraph() if directed else nx.MultiGraph()
-  init_graph.add_edges_from(init_edges)
+  start_steps = step_list[0:base_steps]
+  for start_step in start_steps:
+    init_edges = add_timestamp_edges[start_step]
+    init_graph.add_edges_from(init_edges)
   
   nodes = init_graph.nodes()
   subg = nx.subgraph(graph, nodes)
@@ -172,8 +173,10 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
   time_list.append(elapsed)
 
   ## Run Incremental G-Ray
-  print("Run %d steps out of %d" % (max_steps, len(step_list)))
-  for t in step_list[1:max_steps]:
+  print("Run %d step / %d" % (max_steps, len(step_list)))
+  st_step = base_steps + 1
+  ed_step = st_step + max_steps
+  for t in step_list[st_step:ed_step]:
     print("Run incremental G-Ray: %d" % t)
   
     if enable_profile and t == max_steps - 1:
@@ -202,7 +205,7 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, time_limit):
 
 
 
-def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_steps=100, time_limit=0.0):
+def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_steps=100, max_steps=10, time_limit=0.0):
   """Parse pattern matching query command and options and execute incremental G-Ray
 
   :param graph_json: Graph JSON file
@@ -268,7 +271,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, max_st
     plt.close()
 
 
-  patterns = run_gray_iterations(graph, query, directed, cond, max_steps, time_limit)
+  patterns = run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, time_limit)
   
   # for pattern in patterns:
   #   print pattern.get_graph().edges()
@@ -339,12 +342,13 @@ if __name__ == '__main__':
 
   gfile = conf.get("G-Ray", "input_json")
   steps = int(conf.get("G-Ray", "steps"))
+  basesteps = int(conf.get("G-Ray", "base_steps"))
   qargs = conf.get("G-Ray", "query").split(" ")
   time_limit = float(conf.get("G-Ray", "time_limit"))
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Log level: %s" % str(loglevel))
   logging.basicConfig(level=loglevel)
-  run_query(gfile, qargs, True, False, steps, time_limit)
+  run_query(gfile, qargs, True, False, basesteps, steps, time_limit)
 
 
