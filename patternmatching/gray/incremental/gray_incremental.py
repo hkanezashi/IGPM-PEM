@@ -7,6 +7,7 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 
 import time
 import numpy as np
+import statistics
 
 from patternmatching.gray import extract
 from patternmatching.gray.incremental.extract_incremental import Extract
@@ -114,14 +115,20 @@ def added_nodes_priority(nodes, added):
   return already_added + new_added
 
 
+def compute_community_size(g):
+  sizes = [len(wcc) for wcc in list(nx.weakly_connected_components(g.to_directed())) if len(wcc) > 1]
+  init_size = statistics.median(sizes)
+  print("Community size: %d" % init_size)
+  return init_size
+
 
 class GRayIncremental(GRayMultiple, object):
   def __init__(self, orig_graph, graph, query, directed, cond, time_limit):
-    # init_graph = get_init_graph(graph)
     super(GRayIncremental, self).__init__(graph, query, directed, cond, time_limit)
     self.elapsed = 0.0  # Elapsed time
     self.nodes = list()  # Added nodes (must be sorted by added timestamp)
     self.orig_graph = orig_graph
+    self.community_size = query.number_of_nodes() # compute_community_size(graph)
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -173,8 +180,6 @@ class GRayIncremental(GRayMultiple, object):
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
       return
 
-    # exist_nodes, new_nodes = self.separate_exist_nodes(seeds)
-    # print("Seeds: total: %d, exist: %d, new: %d" % (len(seeds), len(exist_nodes), len(new_nodes)))
     nodeset = added_nodes_priority(self.nodes, seeds)
   
     st = time.time()  # Start time
@@ -228,6 +233,11 @@ class GRayIncremental(GRayMultiple, object):
     print("Patterns: %d, Time: %f, Reward: %f" % (len(self.results), self.elapsed, reward))
     return min(max_value, reward)
   
+  
+  def add_edges(self, add_edges):
+    self.graph.add_edges_from(add_edges)
+    
+    
 
   def run_incremental_gray(self, add_edges, affected_nodes=None):
     """
@@ -290,16 +300,6 @@ class GRayIncremental(GRayMultiple, object):
       rg = r.get_graph()
       if equal_graphs(rg, result):
         return False
-    """
-    seed_nodes = result.nodes()
-    for n in seed_nodes:
-      if not n in self.results:
-        continue
-      r = self.results[n]  # Result pattern contains same nodes
-      rg = r.get_graph()
-      if equal_graphs(rg, result):
-        return False
-    """
     
     ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)

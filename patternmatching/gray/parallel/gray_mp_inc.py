@@ -11,9 +11,10 @@ from multiprocessing import Process  # Use Process instead of Pool
 
 sys.path.append(".")
 
+from patternmatching.gray.incremental.query_call import get_seeds
 from patternmatching.gray.rwr import RWR_WCC
 from patternmatching.query.ConditionParser import ConditionParser
-from patternmatching.gray.incremental.gray_incremental import GRayIncremental
+from patternmatching.gray.incremental.gray_incremental import GRayIncremental, compute_community_size
 from patternmatching.query.Condition import *
 
 
@@ -25,14 +26,6 @@ class GRayParallelInc(GRayIncremental, object):
     self.seeds = seeds
     self.called = 0
     self.nodes = list(graph.nodes())
-    
-    self.rwr_pickle = str(pid) + "_rwr.pickle"
-    self.ext_pickle = str(pid) + "_ext.pickle"
-    if os.path.isfile(self.rwr_pickle):
-      self.graph_rwr = RWR_WCC.load_pickle(self.rwr_pickle)
-    if os.path.isfile(self.ext_pickle):
-      with open(self.ext_pickle, "rb") as rf:
-        self.extracts[''] = pickle.load(rf)
   
   
   def computeRWR(self):
@@ -75,10 +68,6 @@ class GRayParallelInc(GRayIncremental, object):
       if 0.0 < self.time_limit < time.time() - st:
         print("Timeout G-Ray iterations")
         break
-    
-    self.graph_rwr.dump_pickle(self.rwr_pickle)
-    with open(self.ext_pickle, "wb") as wf:
-      pickle.dump(self.extracts[''], wf)
   
   
 
@@ -201,35 +190,20 @@ def split_list_wcc(g, num_proc):
   return seed_lists.values()
 
 
-
 def run_query_part(args):
-  orig_g, g, q_args, time_limit, edges, pid = args
-  query, cond = parse_query(q_args)
-  directed = g.is_directed()
+  grm, edges, pid = args
+  add_nodes = set([src for (src, dst, _) in edges] + [dst for (src, dst, _) in edges])
+  affected_nodes = get_seeds(grm.graph, add_nodes, grm.community_size)
   st = time.time()
-  grp = GRayParallelInc(orig_g, g, query, directed, cond, time_limit, pid, edges)
-  grp.run_gray()
+  grm.run_incremental_gray(edges, affected_nodes)
   ed = time.time()
-  num_patterns = len(grp.get_results())
+  num_patterns = len(grm.get_results())
   print("G-Ray part %d:%d %f[s]" % (pid, num_patterns, (ed - st)))
   return num_patterns
 
 
-def run_query_part_inc(args):
-  orig_g, g, q_args, time_limit, edges, pid = args
-  query, cond = parse_query(q_args)
-  directed = g.is_directed()
-  st = time.time()
-  grp = GRayParallelInc(orig_g, g, query, directed, cond, time_limit, pid, edges)
-  grp.run_incremental_gray(edges)
-  ed = time.time()
-  num_patterns = len(grp.get_results())
-  print("G-Ray part %d:%d %f[s]" % (pid, num_patterns, (ed - st)))
-  return num_patterns
-
-def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10):
-  # directed = query.is_directed()
-  g = load_graph(g_file)
+def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=100, max_steps=10):
+  g = nx.Graph(load_graph(g_file))
   print("Number of vertices: %d" % g.number_of_nodes())
   print("Number of edges: %d" % g.number_of_edges())
 
@@ -246,10 +220,11 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10)
 
   ## Initialize base graph
   print("Initialize base graph")
-  start_step = step_list[0]
-  init_edges = add_timestamp_edges[start_step]
-  init_graph = nx.MultiGraph()
-  init_graph.add_edges_from(init_edges)
+  init_graph = nx.Graph()
+  start_steps = step_list[0:base_steps]
+  for start_step in start_steps:
+    init_edges = add_timestamp_edges[start_step]
+    init_graph.add_edges_from(init_edges)
 
   nodes = init_graph.nodes()
   subg = nx.subgraph(g, nodes)
@@ -257,33 +232,41 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10)
   nx.set_edge_attributes(init_graph, 0, "add")
   print init_graph.number_of_nodes(), init_graph.number_of_edges()
   
+  
+  print("Run base G-Ray")
+  query, cond = parse_query(q_args)
+  directed = g.is_directed()
+  grm = GRayIncremental(g, init_graph, query, directed, cond, time_limit)
+  grm.run_gray()
+
+  st = time.time()
   procs = list()
-  # node_chunks = split_list(nodes, num_proc) # list(chunks(g.nodes(), int(g.order() / node_divisor)))
   edge_chunks = split_list(list(init_graph.edges), num_proc)
   for pid in range(num_proc):
-    procs.append(Process(target=run_query_part, args=((g, init_graph, q_args, time_limit, edge_chunks[pid], pid),)))
+    procs.append(Process(target=run_query_part, args=((grm, edge_chunks[pid], pid),)))
   for proc in procs:
     proc.start()
-  print("Started")
   for proc in procs:
     proc.join()
-  print("Finished")
+  ed = time.time()
+  print("Base G-Ray: %f" % (ed - st))
 
   ## Run Incremental G-Ray
   print("Run %d steps out of %d" % (max_steps, len(step_list)))
-  for t in step_list[1:max_steps]:
+  st_step = base_steps + 1
+  ed_step = st_step + max_steps
+  for t in step_list[st_step:ed_step]:
     print("Run incremental G-Ray: %d" % t)
   
     add_edges = add_timestamp_edges[t]
-    init_graph.add_edges_from(add_edges)
+    grm.add_edges(add_edges)
     print("Add edges: %d" % len(add_edges))
-    # seeds = set([src for (src, dst, _) in add_edges] + [dst for (src, dst, _) in add_edges])  # Affected nodes
 
     st = time.time()
     procs = list()
     edge_chunks = split_list(add_edges, num_proc)
     for pid in range(num_proc):
-      procs.append(Process(target=run_query_part_inc, args=((g, init_graph, q_args, time_limit, edge_chunks[pid], pid),)))
+      procs.append(Process(target=run_query_part, args=((grm, edge_chunks[pid], pid),)))
     for proc in procs:
       proc.start()
     for proc in procs:
@@ -311,17 +294,13 @@ if __name__ == "__main__":
   qargs = conf.get("G-Ray", "query").split(" ")
   timelimit = float(conf.get("G-Ray", "time_limit"))
   numproc = int(conf.get("G-Ray", "num_proc"))
+  basesteps = int(conf.get("G-Ray", "base_steps"))
   maxsteps = int(conf.get("G-Ray", "steps"))
   print("Graph file: %s" % gfile)
   print("Query args: %s" % str(qargs))
   print("Number of proc: %d" % numproc)
   
-  # g = load_graph(gfile)
-  # print("Number of vertices: %d" % g.number_of_nodes())
-  # print("Number of edges: %d" % g.number_of_edges())
-  # q, cond = parse_query(qargs)
-  
-  run_query_parallel(gfile, qargs, timelimit, numproc, maxsteps)
+  run_query_parallel(gfile, qargs, timelimit, numproc, basesteps, maxsteps)
   
   
 

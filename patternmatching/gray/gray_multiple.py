@@ -188,16 +188,6 @@ class GRayMultiple:
       if equal_graphs(rg, result):
         logging.debug("Duplicated subgraph " + str(result.nodes()))
         return False
-    """
-    seed_nodes = result.nodes()
-    for n in seed_nodes:
-      if not n in self.results:
-        continue
-      r = self.results[n]  # Result pattern contains same nodes
-      rg = r.get_graph()
-      if equal_graphs(rg, result):
-        return False
-    """
     
     ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)

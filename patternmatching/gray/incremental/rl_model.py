@@ -119,15 +119,14 @@ class GraphEnv(gym.Env):
     self.base_step = base_step
     self.max_step = max_step
     self.count = 0
-    self.max_threshold, self.node_threshold = GraphEnv.compute_node_threshold(init_graph)
+    self.max_threshold, self.node_threshold = GraphEnv.compute_node_threshold(init_graph, query)
     self.reset()
   
   @staticmethod
-  def compute_node_threshold(g):
+  def compute_node_threshold(g, query):
     sizes = [len(wcc) for wcc in list(nx.weakly_connected_components(g.to_directed())) if len(wcc) > 1]
     max_size = max(sizes)
-    # init_size = sum(sizes) / len(sizes)
-    init_size = statistics.median(sizes)
+    init_size = query.number_of_nodes()
     print("Max: %d, Init: %d" % (max_size, init_size))
     return max_size, init_size
     

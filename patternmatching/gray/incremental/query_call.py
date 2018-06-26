@@ -4,6 +4,7 @@ import json
 from networkx.readwrite import json_graph
 import sys
 import time
+import community
 
 sys.path.append(".")
 
@@ -126,6 +127,56 @@ def parse_args(query_args):
   return query, cond, directed, groupby, orderby, aggregates
 
 
+def recursive_louvain(graph, min_size):
+  def get_louvain(g):
+    partition = community.best_partition(g)
+    return partition
+  
+  def create_reverse_partition(pt):
+    rev_part = dict()
+    for k in pt:
+      v = pt[k]
+      if not v in rev_part:
+        rev_part[v] = list()
+      rev_part[v].append(k)
+    return rev_part
+  
+  def __inner_recursive_louvain(g, num_th):
+    pt = get_louvain(g)
+    rev_part = create_reverse_partition(pt)
+    mem_list = list()
+    if len(rev_part) == 1:
+      return [rev_part.values()[0]]
+    for members in rev_part.values():
+      cluster = g.subgraph(members)
+      if len(members) >= num_th:
+        small_members_list = __inner_recursive_louvain(cluster, num_th)
+        mem_list.extend(small_members_list)
+      else:
+        mem_list.append(members)
+    return mem_list
+  
+  members_list = __inner_recursive_louvain(graph, min_size)
+  num_groups = len(members_list)
+  part = dict()
+  for gid in range(num_groups):
+    for member in members_list[gid]:
+      part[member] = gid
+  return part, create_reverse_partition(part)
+
+
+def get_seeds(graph, affected, min_size):
+  part, rev_part = recursive_louvain(graph, min_size)
+  nodes = set()
+  for n in affected:
+    if not n in part:
+      continue
+    gid = part[n]
+    mem = set(rev_part[gid])
+    nodes.update(mem)
+  return nodes
+
+
 def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, time_limit):
   """Repeat incremental G-Ray algorithms
 
@@ -185,9 +236,12 @@ def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, tim
       pr.enable()
   
     add_edges = add_timestamp_edges[t]
+    add_nodes = set([src for (src, dst, _) in add_edges] + [dst for (src, dst, _) in add_edges])
+    affected_nodes = get_seeds(grm.graph, add_nodes, grm.community_size)
     print("Add edges: %d" % len(add_edges))
+    print("Affected nodes: %d" % len(affected_nodes))
     st = time.time()
-    grm.run_incremental_gray(add_edges)
+    grm.run_incremental_gray(add_edges, affected_nodes)
     results = grm.get_results()
     ed = time.time()
   
