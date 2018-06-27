@@ -228,8 +228,8 @@ class GRayIncremental(GRayMultiple, object):
     :param max_value: Maximum reward value
     :return: Reward value of current step
     """
-    reward = len(self.results) / self.elapsed
-    # reward = 100.0 / self.elapsed
+    # reward = len(self.results) / self.elapsed
+    reward = 100.0 / self.elapsed
     print("Patterns: %d, Time: %f, Reward: %f" % (len(self.results), self.elapsed, reward))
     return min(max_value, reward)
   

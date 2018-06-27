@@ -7,6 +7,9 @@ import statistics
 import gray_incremental
 import sys
 
+from patternmatching.gray.incremental.query_call import get_seeds
+from patternmatching.gray.parallel.gray_mp_inc import *
+
 gym.envs.register(id='graphenv-v0', entry_point='GraphEnv')
 
 
@@ -69,6 +72,15 @@ def get_recompute_nodes(graph, affected, min_size):
   return nodes, len(affected_com), len(rev_part)
 
 
+def run_query_part(args):
+  grm, edges, pid = args
+  add_nodes = set([src for (src, dst) in edges] + [dst for (src, dst) in edges])
+  affected_nodes = get_seeds(grm.graph, add_nodes, grm.community_size)
+  grm.run_incremental_gray(edges, affected_nodes)
+  num_patterns = len(grm.get_results())
+  return num_patterns
+
+
 
 class GraphEnv(gym.Env):
   """Reinforcement learning environment for graph object
@@ -110,7 +122,7 @@ class GraphEnv(gym.Env):
     nx.set_edge_attributes(init_graph, 0, "add")
     
     print("Setup environment")
-    self.action_space = Discrete(2)
+    self.action_space = Discrete(3)
     self.observation_space = Box(low=0, high=np.inf, shape=(window_length, 2), dtype=np.int32)  # Number of nodes, edges
     self.max_reward = 100.0
     self.reward_range = [-1., self.max_reward]
@@ -133,9 +145,39 @@ class GraphEnv(gym.Env):
   def rewind(self):
     self.count = 0
   
+  # def step(self, action):
+  #
+  #   if action == 0 and self.node_threshold > 1:
+  #     self.node_threshold -= 1
+  #   elif action == 1 and self.node_threshold < self.max_threshold:
+  #     self.node_threshold += 1
+  #   print("Community size: %d" % self.node_threshold)
+  #
+  #   t = self.count + self.base_step
+  #   step = self.step_list[t]
+  #   print("Step %d, index %d/%d" % (step, t, len(self.step_list)))
+  #   add_edges = self.add_timestamp_edges[step]
+  #   add_nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
+  #   affected_nodes, affected_com, total_com = get_recompute_nodes(self.grm.graph, add_nodes, self.node_threshold)
+  #   self.grm.run_incremental_gray(add_edges, affected_nodes)
+  #   self.count += 1
+  #   stop = (self.count >= self.max_step)
+  #
+  #   def get_observation():
+  #     nodes = self.grm.graph.number_of_nodes()
+  #     edges = self.grm.graph.number_of_edges()
+  #
+  #     total_density = float(edges) / nodes
+  #     com_density = float(affected_com) / total_com
+  #     return np.array([total_density, com_density])
+  #
+  #   sys.stdout.flush()
+  #   return get_observation(), self.grm.get_reward(self.max_reward), stop, {}
+
   def step(self, action):
+    num_proc = 1
     
-    if action == 0 and self.node_threshold > 2:
+    if action == 0 and self.node_threshold > 1:
       self.node_threshold -= 1
     elif action == 1 and self.node_threshold < self.max_threshold:
       self.node_threshold += 1
@@ -146,8 +188,22 @@ class GraphEnv(gym.Env):
     print("Step %d, index %d/%d" % (step, t, len(self.step_list)))
     add_edges = self.add_timestamp_edges[step]
     add_nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
+
+    st = time.time()
+    procs = list()
+    edge_chunks = split_list(add_edges, num_proc)
+    for pid in range(num_proc):
+      print(len(edge_chunks[pid]))
+      procs.append(Process(target=run_query_part, args=((self.grm, edge_chunks[pid], pid),)))
+    for proc in procs:
+      proc.start()
+    for proc in procs:
+      proc.join()
+    ed = time.time()
+    elapsed = ed - st
+    print("Time at step %d: %f[s]" % (t, elapsed))
+    
     affected_nodes, affected_com, total_com = get_recompute_nodes(self.grm.graph, add_nodes, self.node_threshold)
-    self.grm.run_incremental_gray(add_edges, affected_nodes)
     self.count += 1
     stop = (self.count >= self.max_step)
     

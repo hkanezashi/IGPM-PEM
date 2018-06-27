@@ -1,10 +1,10 @@
 # G-Ray for multiple threads
 
-import pickle
+# import pickle
 import json
 import time
 from networkx.readwrite import json_graph
-import os
+# import os
 import sys
 from ConfigParser import ConfigParser
 from multiprocessing import Process  # Use Process instead of Pool
@@ -12,9 +12,8 @@ from multiprocessing import Process  # Use Process instead of Pool
 sys.path.append(".")
 
 from patternmatching.gray.incremental.query_call import get_seeds
-from patternmatching.gray.rwr import RWR_WCC
 from patternmatching.query.ConditionParser import ConditionParser
-from patternmatching.gray.incremental.gray_incremental import GRayIncremental, compute_community_size
+from patternmatching.gray.incremental.gray_incremental import GRayIncremental
 from patternmatching.query.Condition import *
 
 
@@ -180,13 +179,9 @@ def split_list(seeds, num_proc):
 def split_list_wcc(g, num_proc):
   seed_lists = {pid: list() for pid in range(num_proc)}
   wccs = [l for l in sorted(nx.weakly_connected_components(nx.DiGraph(g)), key=len, reverse=True)]
-  # print len(wccs), sum([len(l) for l in wccs])
   for wcc in wccs:
     pid = min(seed_lists.keys(), key=lambda n:len(seed_lists[n]))
     seed_lists[pid].extend(list(wcc))
-  # for k, v in seed_lists.iteritems():
-  #   print k, len(v)
-  # print len(seed_lists)
   return seed_lists.values()
 
 
@@ -198,12 +193,13 @@ def run_query_part(args):
   grm.run_incremental_gray(edges, affected_nodes)
   ed = time.time()
   num_patterns = len(grm.get_results())
-  print("G-Ray part %d:%d %f[s]" % (pid, num_patterns, (ed - st)))
+  print("G-Ray part %d:%d:%d %f[s]" % (pid, len(edges), num_patterns, (ed - st)))
+  sys.stdout.flush()
   return num_patterns
 
 
 def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=100, max_steps=10):
-  g = nx.Graph(load_graph(g_file))
+  g = load_graph(g_file)
   print("Number of vertices: %d" % g.number_of_nodes())
   print("Number of edges: %d" % g.number_of_edges())
 
@@ -220,7 +216,7 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=10
 
   ## Initialize base graph
   print("Initialize base graph")
-  init_graph = nx.Graph()
+  init_graph = nx.MultiGraph()
   start_steps = step_list[0:base_steps]
   for start_step in start_steps:
     init_edges = add_timestamp_edges[start_step]
@@ -262,10 +258,12 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=10
     grm.add_edges(add_edges)
     print("Add edges: %d" % len(add_edges))
 
-    st = time.time()
     procs = list()
     edge_chunks = split_list(add_edges, num_proc)
+    
+    st = time.time()
     for pid in range(num_proc):
+      print(len(edge_chunks[pid]))
       procs.append(Process(target=run_query_part, args=((grm, edge_chunks[pid], pid),)))
     for proc in procs:
       proc.start()

@@ -18,7 +18,7 @@ g = nx.MultiGraph()
 count = 0
 
 with open(input_csv, "r") as rf:
-  reader = csv.reader(rf, delimiter=",")
+  reader = csv.reader(rf, delimiter=" ")
   for row in reader:
     src = int(row[0])
     dst = int(row[1])
