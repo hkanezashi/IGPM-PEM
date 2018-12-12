@@ -57,9 +57,9 @@ class GRayParallelInc(GRayIncremental, object):
       props = Condition.get_node_props(self.graph, i)
       nodemap[k] = i
       result.add_node(i)
-      result.nodes[i][LABEL] = il
+      result.node[i][LABEL] = il
       for name, value in props.iteritems():
-        result.nodes[i][name] = value
+        result.node[i][name] = value
       touched.append(k)
   
       self.process_neighbors(result, touched, nodemap, unprocessed)
@@ -225,7 +225,7 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=10
   nodes = init_graph.nodes()
   subg = nx.subgraph(g, nodes)
   init_graph.add_nodes_from(subg.nodes(data=True))
-  nx.set_edge_attributes(init_graph, 0, "add")
+  nx.set_edge_attributes(init_graph, "add", 0)
   print init_graph.number_of_nodes(), init_graph.number_of_edges()
   
   

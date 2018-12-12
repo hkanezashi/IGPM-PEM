@@ -1,7 +1,6 @@
 """
 Patrial Execution Manager
 - Renforcement learning component to compute parameters for clustering
--- BoltzmannQPolicy (unstable)
 - Graph clustering by Louvain method
 """
 import sys
@@ -21,13 +20,38 @@ sys.path.append(".")
 from patternmatching.gray.incremental.query_call import load_graph, parse_args
 from patternmatching.gray.incremental.rl_model import GraphEnv
 
-
 logging.basicConfig(level=logging.INFO)
 
+policies = {
+  "bqp": BoltzmannQPolicy(),  # Unstable
+  "gqp": GreedyQPolicy(),
+  "egqp": EpsGreedyQPolicy(eps=0.1)  # eps should be around 0.1
+}
+
+window_length = 5  # Should be less than 20 (too large value will not converge Q-values)
+memories = {
+  "epm": EpisodeParameterMemory(limit=20, window_length=window_length),  # Non-episodic
+  "sm": SequentialMemory(limit=20, window_length=window_length)  # should use this
+}
+
 argv = sys.argv
-if len(argv) < 2:
-  print("Usage: python %s [ConfFile]" % argv[0])
+if len(argv) < 4:
+  print("Usage: python %s [ConfFile] [Policy] [Memory]" % argv[0])
   exit(1)
+
+
+policy_name = argv[2]
+if not policy_name in policies:
+  print("Please specify correct policy name: %s" % str(policies.keys()))
+  exit(1)
+policy = policies[policy_name]
+
+memory_name = argv[3]
+if not memories in memory_name:
+  print("Please specify correct memory name: %s" % str(memories.keys()))
+  exit(1)
+memory = memories[memory_name]
+
 
 conf = ConfigParser()
 conf.read(argv[1])
@@ -43,12 +67,13 @@ test_step = max_step - train_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 
 
-window_length = 5  # Should be up to 20 (too large length will not converge Q-values)
+
 env = GraphEnv(graph, query, cond, base_step, train_step, time_limit, window_length)
-nb_actions = env.action_space.n # len(env.action_space)
+nb_actions = env.action_space.n
 input_shape = env.observation_space.shape
 print "Input shape:", input_shape
 
+# Build the neural network
 model = Sequential()
 model.add(Flatten(input_shape=input_shape))
 model.add(Dense(4))
@@ -60,12 +85,7 @@ model.add(Activation('linear'))
 print(model.summary())
 print(env.observation_space)
 
-# memory = EpisodeParameterMemory(limit=20, window_length=window_length)  # Non-episodic
-memory = SequentialMemory(limit=20, window_length=window_length)
-
-policy = BoltzmannQPolicy()  # Unstable
-
-agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=train_step,  # A3C TRPO
+agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=train_step,
                target_model_update=1e-2, policy=policy)
 agent.compile(Adam(lr=1e-2), metrics=['mae'])
 
@@ -74,8 +94,7 @@ agent.fit(env, train_step)
 ed = time.time()
 print("Training: %f [s]" % (ed - st))
 
-# Reset environment
-# env.rewind()
+# env.reset()
 env = GraphEnv(graph, query, cond, base_step, test_step, time_limit, window_length)
 
 st = time.time()

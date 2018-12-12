@@ -25,13 +25,12 @@ def equal_graphs(g1, g2):
   if diff:  ## Not empty (has differences)
     return False
   
-  """
-  es1 = set(g1.edges())
-  es2 = set(g2.edges())
-  diff = es1 ^ es2
-  if diff:
-    return False
-  """
+  # es1 = set(g1.edges())
+  # es2 = set(g2.edges())
+  # diff = es1 ^ es2
+  # if diff:
+  #   return False
+  
   for n in ns1:
     ne1 = g1[n]
     ne2 = g2[n]
@@ -62,9 +61,6 @@ def valid_result(result, query, nodemap):
     if er_num != eq_num:
       return False
 
-  # print nodemap
-  # print query.edges()
-  # print result.edges()
   for qn, rn in nodemap.iteritems():
     qd = query.degree(qn)
     rd = result.degree(rn)
@@ -197,9 +193,9 @@ class GRayIncremental(GRayMultiple, object):
       props = Condition.get_node_props(self.graph, i)
       nodemap[k] = i
       result.add_node(i)
-      result.nodes[i][LABEL] = il
+      result.node[i][LABEL] = il
       for name, value in props.iteritems():
-        result.nodes[i][name] = value
+        result.node[i][name] = value
     
       touched.append(k)
       
@@ -410,7 +406,7 @@ class GRayIncremental(GRayMultiple, object):
         props = Condition.get_node_props(self.graph, j)
         result_.add_node(j)
         for key, value in props.iteritems():
-          result_.nodes[j][key] = value
+          result_.node[j][key] = value
         
         prev = i
         for n in path:
@@ -451,7 +447,7 @@ class GRayIncremental(GRayMultiple, object):
         result_.add_node(j)
         # print props
         for k, v in props.iteritems():
-          result_.nodes[j][k] = v
+          result_.node[j][k] = v
         # print result_.nodes(data=True)[j]
         
         prev = g_src
@@ -477,11 +473,6 @@ class GRayIncremental(GRayMultiple, object):
     recomp_nodes = added_nodes_priority(self.nodes, nodes)
     self.graph_rwr.add_edges(edges)
     self.graph_rwr.rwr_set(recomp_nodes)
-    # for m in recomp_nodes:
-      # self.graph_rwr.rwr_single(m)
-      # if 0.0 < self.time_limit < time.time() - st:
-      #   print("Timeout RWR iterations")
-      #   return
   
   
   def separate_exist_nodes(self, affected_nodes):

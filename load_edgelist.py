@@ -122,10 +122,10 @@ if __name__ == "__main__":
     exit(1)
   
   temp_file = "temp.json"
-  tm_size = int(argv[1])
-  limit_tm = int(argv[2])
-  load_edgelist(argv[3], temp_file, tm_size)
-  filter_time(temp_file, argv[4], limit_tm)
+  size = int(argv[1])
+  steps = int(argv[2])
+  load_edgelist(argv[3], temp_file, size)
+  filter_time(temp_file, argv[4], steps)
   
   """
   if len(argv) < 3:

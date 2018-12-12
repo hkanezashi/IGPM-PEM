@@ -206,7 +206,7 @@ def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, tim
   nodes = init_graph.nodes()
   subg = nx.subgraph(graph, nodes)
   init_graph.add_nodes_from(subg.nodes(data=True))
-  nx.set_edge_attributes(init_graph, 0, "add")
+  nx.set_edge_attributes(init_graph, "add", 0)
   print init_graph.number_of_nodes(), init_graph.number_of_edges()
 
   time_list = list()
@@ -279,6 +279,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_s
   plt = None
   plot_graph = False
   show_graph = False
+  posg = None
   
   
   print("Graph JSON file: %s" % graph_json)

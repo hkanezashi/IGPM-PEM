@@ -1,6 +1,7 @@
 """
 Patrial Execution Manager
 - Renforcement learning component to compute parameters for clustering
+-- EpsGreedyQPolicy (eps value should be around 0.1)
 - Graph clustering by Louvain method
 """
 import sys
@@ -20,7 +21,6 @@ sys.path.append(".")
 from patternmatching.gray.incremental.query_call import load_graph, parse_args
 from patternmatching.gray.incremental.rl_model import GraphEnv
 
-
 logging.basicConfig(level=logging.INFO)
 
 argv = sys.argv
@@ -39,8 +39,6 @@ time_limit = float(conf.get("G-Ray", "time_limit"))
 graph = nx.Graph(load_graph(graph_json))
 train_step = max_step / 2
 test_step = max_step - train_step
-# train_step = max_step
-# test_step = max_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 
 
@@ -64,7 +62,7 @@ print(env.observation_space)
 # memory = EpisodeParameterMemory(limit=20, window_length=window_length)  # Non-episodic
 memory = SequentialMemory(limit=20, window_length=window_length)
 
-policy = EpsGreedyQPolicy(eps=0.5)
+policy = EpsGreedyQPolicy(eps=0.1)
 
 agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=train_step,  # A3C TRPO
                target_model_update=1e-2, policy=policy)

@@ -37,8 +37,6 @@ args = conf.get("G-Ray", "query").split(" ")
 time_limit = float(conf.get("G-Ray", "time_limit"))
 
 graph = nx.Graph(load_graph(graph_json))
-# train_step = max_step / 2
-# test_step = max_step - train_step
 train_step = max_step
 test_step = max_step
 query, cond, directed, groupby, orderby, aggregates = parse_args(args)

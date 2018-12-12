@@ -11,3 +11,6 @@ conf/
 *.log
 temp*
 *.pickle
+
+hostfile
+lab3-DQN.ipynb
