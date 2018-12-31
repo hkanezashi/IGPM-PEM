@@ -1,4 +1,4 @@
-# ScalablePM
+# IGPM-PEM
 Scalable and Approximate Pattern Matching for Billion-Scale Property Graphs
 
 
@@ -40,3 +40,5 @@ python patternmatching/gray/incremental/partial_execution_manager.py [ConfFile]
 ```
 
 
+# Reference
+Adaptive Pattern Matching with Reinforcement Learning for Dynamic Graphs. https://arxiv.org/abs/1812.10321
