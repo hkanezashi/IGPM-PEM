@@ -22,23 +22,32 @@ python load_edgelist.py [Edges/Step] [Steps] [InputEdgelist] [OutputJSON]
     - `--edgelabel` Edge label restriction (edgeID:label). Example: `--edgelabel x:yes y:yes z:yes`
 
 
+
+# Launch commands and scripts
+
 ## Batch
 ```bash
 python patternmatching/gray/query_call.py [ConfFile]
 ```
 
-## Incremental
+## Incremental (Naive)
 ```bash
 export PYTHONPATH=$(pwd)
 python patternmatching/gray/incremental/query_call.py [ConfFile]
 ```
 
-## Incremental with PEM
+## Incremental (Adaptive with PEM)
 ```bash
 export PYTHONPATH=$(pwd)
 python patternmatching/gray/incremental/partial_execution_manager.py [ConfFile]
 ```
 
+## Running IGPM-PEM in [TSUBAME3.0](https://www.t3.gsic.titech.ac.jp/en)
+1. Assign a computation node: `qrsh -l f_node=1 -l h_rt=0:10:00`
+1. Load modules: `module load python-extension`
+1. Launch scripts as above
+
 
 # Reference
-Adaptive Pattern Matching with Reinforcement Learning for Dynamic Graphs. https://arxiv.org/abs/1812.10321
+Hiroki Kanezashi, Toyotaro Suzumura, Dario Garcia-Gasulla, Min-Hwan and Satoshi Matsuoka, "Adaptive Pattern Matching with Reinforcement Learning for Dynamic Graphs" https://arxiv.org/abs/1812.10321
+
