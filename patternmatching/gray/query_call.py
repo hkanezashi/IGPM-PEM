@@ -1,4 +1,4 @@
-import networkx as nx
+
 import json
 from networkx.readwrite import json_graph
 import sys
@@ -191,7 +191,7 @@ def run_query_step(graph_json, query_args, base_steps=100, max_steps=10, time_li
   
 
 
-def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
+def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_limit=0.0):
   
   
   """
@@ -349,6 +349,8 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False):
     import cProfile
     pr = cProfile.Profile()
     pr.enable()
+  else:
+    pr = None
   
   grm = GRayMultiple(graph, query, directed, cond, time_limit)
   grm.run_gray()

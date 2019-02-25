@@ -9,7 +9,7 @@ python load_edgelist.py [Edges/Step] [Steps] [InputEdgelist] [OutputJSON]
 - Edges/Step: Number of edges to be added per step
 - Steps: Number of total steps
 - InputEdgelist: Edge list file (first and second columns indicate source and destination vertex ID)
-- OutputJSON: Graph file in JSON format
+- OutputJSON: Graph file in JSON format used for the graph pattern matching process
 
 
 ## Configuration File (ini format)
@@ -49,5 +49,5 @@ python patternmatching/gray/incremental/partial_execution_manager.py [ConfFile]
 
 
 # Reference
-Hiroki Kanezashi, Toyotaro Suzumura, Dario Garcia-Gasulla, Min-Hwan and Satoshi Matsuoka, "Adaptive Pattern Matching with Reinforcement Learning for Dynamic Graphs" https://arxiv.org/abs/1812.10321
+Hiroki Kanezashi, Toyotaro Suzumura, Dario Garcia-Gasulla, Min-Hwan and Satoshi Matsuoka, "Adaptive Pattern Matching with Reinforcement Learning for Dynamic Graphs", 25TH IEEE International Conference on High Performance Computing, Data, and Analytics (HiPC 2018) https://arxiv.org/abs/1812.10321
 
