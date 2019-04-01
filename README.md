@@ -10,11 +10,12 @@ python load_edgelist.py [Edges/Step] [Steps] [InputEdgelist] [OutputJSON]
 - Steps: Number of total steps
 - InputEdgelist: Edge list file (first and second columns indicate source and destination vertex ID)
 - OutputJSON: Graph file in JSON format used for the graph pattern matching process
+  - The JSON format is the same as [NetworkX](https://networkx.github.io/documentation/latest/reference/readwrite/json_graph.html)
 
 
 ## Configuration File (ini format)
-- GraphJSON: Input Graph file in JSON format
-- Steps: Number of total steps
+- GraphJSON: Input Graph file in JSON format: See [NetworkX](https://networkx.github.io/documentation/latest/reference/readwrite/json_graph.html)
+- Steps: Number of graph update steps
 - QueryArgs...: Options for the query graph
     - `--vertex` Vertex ID list. Example:`--vertex a b c`
     - `--edge` Edge (edgeID:sourceID:destinationID) list. Example:`--edge x:a:b y:b:c z:c:a`
@@ -30,22 +31,17 @@ python load_edgelist.py [Edges/Step] [Steps] [InputEdgelist] [OutputJSON]
 python patternmatching/gray/query_call.py [ConfFile]
 ```
 
-## Incremental (Naive)
+## Incremental (Naive version)
 ```bash
 export PYTHONPATH=$(pwd)
 python patternmatching/gray/incremental/query_call.py [ConfFile]
 ```
 
-## Incremental (Adaptive with PEM)
+## Incremental (Adaptive version with PEM)
 ```bash
 export PYTHONPATH=$(pwd)
 python patternmatching/gray/incremental/partial_execution_manager.py [ConfFile]
 ```
-
-## Running IGPM-PEM in [TSUBAME3.0](https://www.t3.gsic.titech.ac.jp/en)
-1. Assign a computation node: `qrsh -l f_node=1 -l h_rt=0:10:00`
-1. Load modules: `module load python-extension`
-1. Launch scripts as above
 
 
 # Reference

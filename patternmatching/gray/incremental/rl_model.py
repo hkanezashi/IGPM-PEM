@@ -3,6 +3,7 @@ import gym
 from gym.spaces import Box, Discrete
 import numpy as np
 import gray_incremental
+import networkx as nx
 
 from patternmatching.gray.parallel.gray_mp_inc import *
 

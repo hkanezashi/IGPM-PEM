@@ -28,7 +28,8 @@ class Aggregator:
     return opKey, elemKey, propKey
 
   def get_result(self, results):
-    if not results:
+    num_results = len(results)
+    if num_results == 0:
       logging.warning("No result subgraphs")
       return None
     
@@ -37,16 +38,15 @@ class Aggregator:
     propKey = self.op[2]
     
     if opKey == "COUNT":
-      return len(results)
+      return num_results
     elif opKey == "MIN":
-      return min(float(x.get_node_prop(elemKey, propKey)) for x in results)
+      return min(float(x.get_node_prop(elemKey, propKey)) for x in results.values())
     elif opKey == "MAX":
-      # print elemKey, propKey
-      return max(float(x.get_node_prop(elemKey, propKey)) for x in results)
+      return max(float(x.get_node_prop(elemKey, propKey)) for x in results.values())
     elif opKey == "SUM":
-      return sum(float(x.get_node_prop(elemKey, propKey)) for x in results)
+      return sum(float(x.get_node_prop(elemKey, propKey)) for x in results.values())
     elif opKey == "AVG":
-      return sum(float(x.get_node_prop(elemKey, propKey)) for x in results) / float(len(results))
+      return sum(float(x.get_node_prop(elemKey, propKey)) for x in results.values()) / float(num_results)
     else:
       logging.warning("Unknown operator: " + opKey)
       return None

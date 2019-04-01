@@ -302,7 +302,7 @@ def run_parallel_gray(gfile, qargs, hosts):
 if __name__ == "__main__":
   argv = sys.argv
   if len(argv) < 3:
-    print("Usage: python %s [ConfFile] [PE_HOSTFILE]" % argv[0])
+    print("Usage: python %s [ConfFile] [HostFile]" % argv[0])
     exit(1)
 
   conf = ConfigParser()

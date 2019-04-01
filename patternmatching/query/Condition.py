@@ -39,13 +39,8 @@ class Condition:
 
   @staticmethod
   def get_node_label(g, i):
-    # return g[i].get(LABEL, "")
     return g.nodes(data=True)[i].get(LABEL, '')
-  
-  # @staticmethod
-  # def get_edges(g, src, dst):
-  #   return g.edges[src, dst]
-  
+    
   """
   Get a dict between edge ID and label from specified src and dst
   """
@@ -174,18 +169,6 @@ class Condition:
     for k, v in prop.iteritems():
       nodes = [i for i in nodes if Condition.get_node_prop(g, i, k) == v]
     return nodes
-  
-  """
-  ## Filter edges in input graph by a label and properties (set them empty if no restrictions)
-  @staticmethod
-  def filter_edges(g, label, prop):
-    edges = g.edges()
-    if label:
-      edges = [e for e in edges if g.get_edge_data(*e)[LABEL] == label]
-    for k, v in prop.iteritems():
-      edges = [e for e in edges if g.get_edge_data(*e)[k] == v]
-    return edges
-  """
   
   
   

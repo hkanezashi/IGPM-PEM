@@ -3,7 +3,7 @@ scikit-learn
 numpy
 pyparsing
 matplotlib
-networkx==1.10
+networkx==2.1
 metis
 keras
 keras-rl

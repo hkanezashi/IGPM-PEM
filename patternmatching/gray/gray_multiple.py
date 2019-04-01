@@ -146,8 +146,6 @@ class GRayMultiple:
     logging.info("---- Start G-Ray ----")
     st = time.time()
     self.computeRWR()
-    # if 14896 in self.graph:
-    #   print 14896, self.graph_rwr.mat[14896]
     ed = time.time()
     logging.info("#### Compute RWR: %f [s]" % (ed - st))
 

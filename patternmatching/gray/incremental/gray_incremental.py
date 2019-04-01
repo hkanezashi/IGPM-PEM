@@ -90,7 +90,7 @@ def update_added_nodes(nodes, added):
   seen = set(nodes)
   seen_add = seen.add
   new_added = [n for n in added if not (n in seen or seen_add(n))]
-  print("Original: %d, Added: %d, Total: %d" % (len(nodes), len(added), len(nodes)+len(new_added)))
+  print("Vertices - Original: %d, Added: %d, Total: %d" % (len(nodes), len(added), len(nodes)+len(new_added)))
   return nodes + new_added
 
 
@@ -119,12 +119,14 @@ def compute_community_size(g):
 
 
 class GRayIncremental(GRayMultiple, object):
+  
   def __init__(self, orig_graph, graph, query, directed, cond, time_limit):
     super(GRayIncremental, self).__init__(graph, query, directed, cond, time_limit)
     self.elapsed = 0.0  # Elapsed time
     self.nodes = list()  # Added nodes (must be sorted by added timestamp)
     self.orig_graph = orig_graph
     self.community_size = query.number_of_nodes() # compute_community_size(graph)
+    self.newly_found = 0  # Number of newly found patterns
   
   def update_graph(self, nodes, edges):
     self.graph.add_nodes_from(nodes)
@@ -205,9 +207,17 @@ class GRayIncremental(GRayMultiple, object):
       ts = time.time()
       if 0.0 < self.time_limit < ts - st:
         print(buf)
+        print("Newly found patterns: %d" % self.newly_found)
+        print("Total found patterns: %d" % len(self.results))
+        self.newly_found = 0
         print("Timeout G-Ray iterations: %f" % (ts - st))
+        print("Actual number of triangles: %d" % (sum(nx.triangles(nx.Graph(self.graph)).values()) / 3))
         return
-    print buf
+    print(buf)
+    print("Newly found patterns: %d" % self.newly_found)
+    print("Total found patterns: %d" % len(self.results))
+    self.newly_found = 0
+    print("Actual number of triangles: %d" % (sum(nx.triangles(nx.Graph(self.graph)).values()) / 3))
   
   
   def get_observation(self):
@@ -302,6 +312,7 @@ class GRayIncremental(GRayMultiple, object):
     self.results[self.current_seed] = qresult  # Register QueryResult of current seed
     
     logging.debug("Result nodes:" + str(result.nodes()))
+    self.newly_found += 1
     return True
 
   

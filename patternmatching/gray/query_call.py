@@ -304,9 +304,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
   
   numv = graph.number_of_nodes()
   nume = graph.number_of_edges()
-  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
-  # print graph.nodes()
-  # print graph.edges()
+  print("Input Graph: %d vertices, %d edges" % (numv, nume))
   
   posg = nx.spring_layout(graph)
   if plot_graph:
@@ -314,7 +312,6 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
     edge_labels = nx.get_edge_attributes(graph, LABEL)
     nx.draw_networkx(graph, posg, arrows=True, node_color=colors, node_size=1000, font_size=24)
     nx.draw_networkx_edge_labels(graph, posg, labels = edge_labels)
-    # nx.draw_networkx(query, node_color='c')
     plt.draw()
     plt.savefig("graph.png")
     if show_graph:
@@ -324,9 +321,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
   
   numv = query.number_of_nodes()
   nume = query.number_of_edges()
-  print "Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
-  # print query.nodes()
-  # print query.edges()
+  print("Query Graph: %d vertices, %d edges" % (numv, nume))
   
   if plot_graph:
     colors = [label_color[v] for k, v in nx.get_node_attributes(query, LABEL).iteritems()]
@@ -334,7 +329,6 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
     edge_labels = nx.get_edge_attributes(query, LABEL)
     nx.draw_networkx(query, posq, arrows=True, node_color=colors, node_size=1000, font_size=24)
     nx.draw_networkx_edge_labels(query, posq, labels=edge_labels)
-    # nx.draw_networkx(query, node_color='c')
     plt.draw()
     plt.savefig("query.png")
     if show_graph:
@@ -364,12 +358,8 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
     stats.print_stats()
   
   ed = time.time()
-  print "Found " + str(len(results)) + " patterns."
-  print "Elapsed time [s]: " + str(ed - st)
-  # print "Extract: " + str(grm.getExtract())
-  
-  # for pattern in results.values():
-  #   print pattern.get_graph().edges()
+  print("Found %d patterns." % len(results))
+  print("Elapsed time %f[s]: " % (ed - st))
   
   
   if plot_graph:

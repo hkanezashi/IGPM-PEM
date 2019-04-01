@@ -5,12 +5,12 @@ import patternmatching.gray.query_call
 ### Label -> matplotlib color string
 label_color = {'cyan': 'c', 'magenta': 'm', 'yellow': 'y', 'white': 'w'}
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARN)
 
 test_cases = [
   ("sample/test1.json",    # Case 1-1
    "--vertex a b c d e --edge x:a:b y:b:c z:c:d w:d:e --vertexlabel a:cyan b:cyan c:cyan d:cyan e:cyan",
-   [[0, 1, 2, 3, 4], [0, 1, 2, 3, 4], [0, 2, 3, 4, 5], [0, 2, 3, 4, 5]]),
+   [[0, 1, 2, 3, 4], [0, 2, 3, 4, 5]]),
   ("sample/test1.json",    # Case 1-2
    "--vertex a b c --edge x:a:b y:b:c z:c:a --vertexlabel a:cyan b:cyan c:cyan",
    [[0, 1, 3], [2, 4, 5]]),
@@ -50,6 +50,7 @@ test_cases = [
 ]
 
 
+num_success = 0
 for tc in test_cases:
   gfile = tc[0]
   qstr = tc[1]
@@ -60,18 +61,16 @@ for tc in test_cases:
   qargs = qstr.split(" ")
   logging.basicConfig(level=logging.WARNING)
   results = patternmatching.gray.query_call.run_query(gfile, qargs)
-  SUCCESS = True
   
   num_results = len(results)
   num_ans = len(ans)
   if num_results != num_ans:
-    print "FAILED: the number of result graphs is different", num_results, " expected", num_ans
-    SUCCESS = False
-    continue
-  for qresult in results:
-    result = qresult.get_graph()
-    # print result.nodes()
-    
-  print SUCCESS
+    print("FAILED: the number of result graphs is different:%d expected:%d" % (num_results, num_ans))
+  else:
+    print("PASSED: %d" % num_results)
+    for qresult in results.values():
+      result = qresult.get_graph()
+    num_success += 1
 
+print("Number of passed/total cases: %d/%d" % (num_success, len(test_cases)))
 
