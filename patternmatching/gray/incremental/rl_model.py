@@ -162,7 +162,7 @@ class GraphEnv(gym.Env):
     procs = list()
     edge_chunks = split_list(add_edges, num_proc)
     for pid in range(num_proc):
-      print(len(edge_chunks[pid]))
+      # print(len(edge_chunks[pid]))
       procs.append(Process(target=run_query_part, args=((self.grm, edge_chunks[pid], pid),)))
     for proc in procs:
       proc.start()

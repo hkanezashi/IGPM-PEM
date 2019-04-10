@@ -1,5 +1,7 @@
 """
-Patrial Execution Manager
+Script for Patrial Execution Manager
+Usage: python patternmatching/gray/incremental/pem_egqp.py [ConfFile]
+
 - Renforcement learning component to compute parameters for clustering
 -- EpsGreedyQPolicy (eps value should be around 0.1)
 - Graph clustering by Louvain method

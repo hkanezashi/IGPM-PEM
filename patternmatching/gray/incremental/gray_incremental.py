@@ -17,28 +17,20 @@ from patternmatching.query import QueryResult
 
 
 def equal_graphs(g1, g2):
-  ns1 = set(g1.nodes())
-  ns2 = set(g2.nodes())
-  # logging.debug("Node 1: " + str(ns1))
-  # logging.debug("Node 2: " + str(ns2))
-  diff = ns1 ^ ns2
-  if diff:  ## Not empty (has differences)
-    return False
-  
-  # es1 = set(g1.edges())
-  # es2 = set(g2.edges())
-  # diff = es1 ^ es2
-  # if diff:
+  return set(g1.edges()) == set(g2.edges())
+  # ns1 = set(g1.nodes())
+  # ns2 = set(g2.nodes())
+  # diff = ns1 ^ ns2
+  # if diff:  ## Not empty (has differences)
   #   return False
-  
-  for n in ns1:
-    ne1 = g1[n]
-    ne2 = g2[n]
-    # print n, ne1, ne2
-    if ne1 != ne2:
-      return False
-  
-  return True
+  #
+  # for n in ns1:
+  #   ne1 = g1[n]
+  #   ne2 = g2[n]
+  #   if ne1 != ne2:
+  #     return False
+  #
+  # return True
 
 
 def valid_result(result, query, nodemap):
@@ -201,21 +193,23 @@ class GRayIncremental(GRayMultiple, object):
     
       touched.append(k)
       
-      tmp = self.count
+      tmp = self.num_exact
       self.process_neighbors(result, touched, nodemap, unprocessed)
-      buf += "*" if (tmp < self.count) else "."  # Found new patterns?
+      buf += "*" if (tmp < self.num_exact) else "."  # Found new patterns?
       ts = time.time()
       if 0.0 < self.time_limit < ts - st:
         print(buf)
         print("Newly found patterns: %d" % self.newly_found)
-        print("Total found patterns: %d" % len(self.results))
+        print("Total exact patterns: %d" % self.num_exact)
+        print("Total approximate patterns: %d" % self.num_approx)
         self.newly_found = 0
         print("Timeout G-Ray iterations: %f" % (ts - st))
         print("Actual number of triangles: %d" % (sum(nx.triangles(nx.Graph(self.graph)).values()) / 3))
         return
     print(buf)
     print("Newly found patterns: %d" % self.newly_found)
-    print("Total found patterns: %d" % len(self.results))
+    print("Total exact patterns: %d" % self.num_exact)
+    print("Total approximate patterns: %d" % self.num_approx)
     self.newly_found = 0
     print("Actual number of triangles: %d" % (sum(nx.triangles(nx.Graph(self.graph)).values()) / 3))
   
@@ -261,7 +255,7 @@ class GRayIncremental(GRayMultiple, object):
     self.graph.add_nodes_from(subg.nodes(data=True))
     self.graph.add_edges_from(add_edges)
     
-    logging.info("Number of vertices: %d" % len(self.nodes))
+    logging.info("Number of vertices: %d" % self.graph.number_of_nodes())
     logging.info("Number of edges: %d" % self.graph.number_of_edges())
 
     logging.info("---- Start Incremental G-Ray ----")
@@ -315,16 +309,35 @@ class GRayIncremental(GRayMultiple, object):
     self.newly_found += 1
     return True
 
+
+  def append_approx(self, result, nodemap):
+    if self.cond is not None and not self.cond.eval(result, nodemap):
+      return False  ## Not satisfied with complex condition
+  
+    ## Remove duplicates
+    for r in self.approx.values():
+      rg = r.get_graph()
+      if equal_graphs(rg, result):
+        return False
+  
+    ## Register the result pattern
+    qresult = QueryResult.QueryResult(result, nodemap)
+    self.approx[self.current_seed] = qresult  # Register QueryResult of current seed
+    return True
+  
+
   
   def process_neighbors(self, result, touched, nodemap, unproc):
     if unproc.number_of_edges() == 0:
       if valid_result(result, self.query, nodemap):
-        logging.debug("###### Found pattern " + str(self.count))
+        logging.debug("###### Found pattern " + str(self.num_exact))
         if self.append_results(result, nodemap):
-          self.count += 1
+          self.num_exact += 1
         return
       else:
-        logging.debug("No more edges available. Exit G-Ray algorithm.")
+        logging.debug("Approximate Pattern " + str(self.num_approx))
+        if self.append_approx(result, nodemap):
+          self.num_approx += 1
         return
     if result.number_of_edges() > self.query.number_of_edges():
       logging.debug("Too many edges. Exit G-Ray algorithm.")
@@ -368,7 +381,7 @@ class GRayIncremental(GRayMultiple, object):
       logging.debug("No more vertices with the same label available. Exit G-Ray algorithm.")
       return
     
-    logging.debug("#### Start Processing Neighbors from " + str(k) + " count " + str(self.count))
+    logging.debug("#### Start Processing Neighbors from " + str(k) + " count " + str(self.num_exact))
     logging.debug("## result: " + " ".join([str(e) for e in result.edges()]))
     logging.debug("## touchd: " + " ".join([str(n) for n in touched]))
     logging.debug("## nodemp: " + str(nodemap))

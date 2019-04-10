@@ -65,7 +65,9 @@ class ConditionParser:
     """
     self.expr = expr.parseString(eq_str)[0]
     
-  def eval(self, g, nodemap={}, expr=None):
+  def eval(self, g, nodemap=None, expr=None):
+    if nodemap is None:
+      nodemap = dict()
     if expr is None:
       expr = self.expr
     logging.info(expr)

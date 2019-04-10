@@ -84,8 +84,10 @@ class GRayMultiple:
     self.query = query
     self.directed = directed
     self.results = dict() ## Seed ID, QueryResult
+    self.approx = dict()  ## Seed ID, QueryResult
     self.current_seed = None  # Current seed ID
-    self.count = 0
+    self.num_exact = 0  # Number of exact patterns
+    self.num_approx = 0  # Number of approximate patterns
     self.extracts = {}
     self.cond = cond ## Complex condition
     self.time_limit = time_limit
@@ -199,9 +201,9 @@ class GRayMultiple:
     self.called += 1
     if unproc.number_of_edges() == 0:
       if valid_result(result, self.query, nodemap):
-        logging.debug("###### Found pattern " + str(self.count))
+        logging.debug("###### Found pattern " + str(self.num_exact))
         if self.append_results(result, nodemap):
-          self.count += 1
+          self.num_exact += 1
         return
       else:
         logging.debug("No more edges available. Exit G-Ray algorithm.")
@@ -249,7 +251,7 @@ class GRayMultiple:
       return
     
     if self.is_target():
-      logging.info("#### Start Processing Neighbors from " + str(k) + " count " + str(self.count))
+      logging.info("#### Start Processing Neighbors from " + str(k) + " count " + str(self.num_exact))
       logging.info("## result: " + " ".join([str(e) for e in result.edges()]))
       logging.info("## touchd: " + " ".join([str(n) for n in touched]))
       logging.info("## nodemp: " + str(nodemap))
