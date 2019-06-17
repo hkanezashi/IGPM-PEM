@@ -1,12 +1,14 @@
 python-louvain
 scikit-learn
 numpy
+scipy
 pyparsing
 matplotlib
-networkx==2.1
+networkx
 metis
 keras
 keras-rl
 gym
 pathos
 statistics
+tensorflow

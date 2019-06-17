@@ -70,6 +70,7 @@ agent = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_war
                target_model_update=1e-2, policy=policy)
 agent.compile(Adam(lr=1e-2), metrics=['mae'])
 
+print("Fit model")
 st = time.time()
 agent.fit(env, train_step)
 ed = time.time()

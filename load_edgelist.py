@@ -12,7 +12,7 @@ def load_edgelist(in_fname, out_fname, tm_size):
   
   :param in_fname: Edgelist file name
   :param out_fname: JSON file name
-  :param tm_size: Number of edges per time
+  :param tm_size: Number of edges per step
   :return:
   """
   graph = nx.Graph()
@@ -124,30 +124,7 @@ if __name__ == "__main__":
   temp_file = "temp.json"
   size = int(argv[1])
   steps = int(argv[2])
-  load_edgelist(argv[3], temp_file, size)
-  filter_time(temp_file, argv[4], steps)
+  load_edgelist(argv[3], argv[4], size)
+  # filter_time(temp_file, argv[4], steps)
   
-  """
-  if len(argv) < 3:
-    print("Usage: python %s [Size] [Steps]" % argv[0])
-    exit(1)
-  tm_size = int(argv[1])
-  limit_tm = int(argv[2])
-
-  print("Convert Congress Data")
-  load_edgelist("data/Congress/edges", "data/Congress.json", tm_size)
-  filter_time("data/Congress.json", "data/Congress1.json", limit_tm)
-
-  print("Convert IMDb Data")
-  load_edgelist("data/imdb/edges", "data/IMDb.json", tm_size)
-  filter_time("data/IMDb.json", "data/IMDb1.json", limit_tm)
-  
-  print("Convert Amazon Data")
-  load_edgelist("data/Amazon/edges", "data/Amazon.json", tm_size)
-  filter_time("data/Amazon.json", "data/Amazon1.json", limit_tm)
-  """
-  
-  # print("Convert Stackoverflow Data")
-  # load_edgelist_time("data/real/sx-stackoverflow.txt", "data/stackoverflow.json", limit_tm)
-  # filter_time("data/stackoverflow.json", "data/stackoverflow1.json", limit_tm)
   

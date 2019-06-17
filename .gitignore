@@ -5,6 +5,7 @@ data/
 logs/
 conf/
 
+*.iml
 *.pyc
 *.gml
 *.png
@@ -13,5 +14,6 @@ temp*
 *.pickle
 
 hostfile
-lab3-DQN.ipynb
+*-test.ipynb
 .ipynb_checkpoints/
+*.sh

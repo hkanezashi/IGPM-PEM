@@ -6,6 +6,7 @@ Proceedings of the 13th ACM SIGKDD international conference on Knowledge discove
 """
 
 import time
+import networkx as nx
 import numpy as np
 import statistics
 
@@ -18,19 +19,6 @@ from patternmatching.query import QueryResult
 
 def equal_graphs(g1, g2):
   return set(g1.edges()) == set(g2.edges())
-  # ns1 = set(g1.nodes())
-  # ns2 = set(g2.nodes())
-  # diff = ns1 ^ ns2
-  # if diff:  ## Not empty (has differences)
-  #   return False
-  #
-  # for n in ns1:
-  #   ne1 = g1[n]
-  #   ne2 = g2[n]
-  #   if ne1 != ne2:
-  #     return False
-  #
-  # return True
 
 
 def valid_result(result, query, nodemap):
@@ -205,6 +193,7 @@ class GRayIncremental(GRayMultiple, object):
         self.newly_found = 0
         print("Timeout G-Ray iterations: %f" % (ts - st))
         print("Actual number of triangles: %d" % (sum(nx.triangles(nx.Graph(self.graph)).values()) / 3))
+        print("Actual number of 5-node stars: %d" % len([vid for vid,deg in self.graph.degree() if deg >= 4]))
         return
     print(buf)
     print("Newly found patterns: %d" % self.newly_found)
@@ -212,6 +201,7 @@ class GRayIncremental(GRayMultiple, object):
     print("Total approximate patterns: %d" % self.num_approx)
     self.newly_found = 0
     print("Actual number of triangles: %d" % (sum(nx.triangles(nx.Graph(self.graph)).values()) / 3))
+    print("Actual number of 5-node stars: %d" % len([vid for vid, deg in self.graph.degree() if deg >= 4]))
   
   
   def get_observation(self):
@@ -323,6 +313,7 @@ class GRayIncremental(GRayMultiple, object):
     ## Register the result pattern
     qresult = QueryResult.QueryResult(result, nodemap)
     self.approx[self.current_seed] = qresult  # Register QueryResult of current seed
+    self.newly_found += 1
     return True
   
 
@@ -399,10 +390,9 @@ class GRayIncremental(GRayMultiple, object):
     
     #### Find a path or edge (Begin)
     src, dst = (l, k) if reversed_edge else (k, l)
-    
     elabel = Condition.get_edge_label(unproc, src, dst)
     # print elabel
-    if elabel is None:  # Any label is OK
+    if elabel is None:  # Accepts any labels
       eid = None
       el = ''
     else:
@@ -490,10 +480,6 @@ class GRayIncremental(GRayMultiple, object):
   def compute_part_RWR(self, nodes, edges):
     """Compute incremental RWR
     """
-    st = time.time()
-    # rw = rwr.RWR(self.graph)
-    # rw = rwr.RWR_WCC(self.graph, RESTART_PROB, OG_PROB)
-    
     recomp_nodes = added_nodes_priority(self.nodes, nodes)
     self.graph_rwr.add_edges(edges)
     self.graph_rwr.rwr_set(recomp_nodes)

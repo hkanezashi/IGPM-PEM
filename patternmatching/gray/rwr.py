@@ -55,7 +55,9 @@ class RWR_WCC:
   
   def add_edges(self, edges):
     self.g.add_edges_from(edges)
-    self.wccs = list(nx.weakly_connected_components(self.g.to_directed()))
+    self.wccs = list()
+    for wcc in nx.connected_components(self.g):
+      self.wccs.append(wcc)
     self.num = self.g.number_of_nodes()
     
   
@@ -72,17 +74,17 @@ class RWR_WCC:
     remain = set(nodes)
     # count = 0
     for wcc in self.wccs:
+      # print(len(remain), len(wcc))
       found = set(wcc)
       rc_set = remain & found
       if rc_set:
         g_ = nx.subgraph(self.g, wcc)
         r_ = RWR(g_)
         for src in rc_set:
-          # count += 1
+          # print("src " + str(src))
           ret = r_.run_exp(src, self.restart_prob, self.og_prob)
+          # print(ret)
           self.set_values(src, ret)
-          # if count % 100 == 0:
-          #   print count
         remain -= rc_set
         if not remain:
           return
@@ -136,7 +138,8 @@ class RWR:
   def _build_matrices(self, graph):
     self.OG = graph
     self.nodelist = list(self.OG.nodes())
-    og_not_normalized = nx.to_numpy_matrix(graph)
+    # og_not_normalized = nx.to_numpy_matrix(graph)
+    og_not_normalized = nx.to_scipy_sparse_matrix(graph)
     self.og_matrix = self._normalize_cols(og_not_normalized)
   
   @staticmethod
@@ -152,7 +155,9 @@ class RWR:
     p_t = np.copy(p_0)
     
     while diff_norm > CONV_THRESHOLD:
+      # print(diff_norm)
       p_t_1 = self._calculate_next_p(p_t, p_0)
+      # print("diff_norm")
       diff_norm = np.linalg.norm(np.subtract(p_t_1, p_t), 1)
       p_t = p_t_1
     
@@ -167,7 +172,9 @@ class RWR:
       yield s[0], s[1]
   
   def _calculate_next_p(self, p_t, p_0):
-    epsilon = np.squeeze(np.asarray(np.dot(self.og_matrix, p_t)))
+    # print("_calculate_next_p")
+    # epsilon = np.squeeze(np.asarray(np.dot(self.og_matrix, p_t)))
+    epsilon = np.squeeze(np.asarray(self.og_matrix.dot(p_t)))
     no_restart = epsilon * (1 - self.restart_prob)
     restart = p_0 * self.restart_prob
     return np.add(no_restart, restart)

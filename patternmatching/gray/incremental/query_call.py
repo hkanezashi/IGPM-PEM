@@ -236,7 +236,7 @@ def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, tim
       pr.enable()
   
     add_edges = add_timestamp_edges[t]
-    add_nodes = set([src for (src, dst, _) in add_edges] + [dst for (src, dst, _) in add_edges])
+    add_nodes = set([e[0] for e in add_edges] + [e[1] for e in add_edges])
     affected_nodes = get_seeds(grm.graph, add_nodes, grm.community_size)
     print("Add edges: %d" % len(add_edges))
     print("Affected nodes: %d" % len(affected_nodes))
