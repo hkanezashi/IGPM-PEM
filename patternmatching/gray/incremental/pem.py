@@ -6,7 +6,7 @@ Patrial Execution Manager
 import sys
 import time
 import logging
-from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser
 import networkx as nx
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -71,7 +71,7 @@ query, cond, directed, groupby, orderby, aggregates = parse_args(args)
 env = GraphEnv(graph, query, cond, base_step, train_step, time_limit, window_length)
 nb_actions = env.action_space.n
 input_shape = env.observation_space.shape
-print "Input shape:", input_shape
+print("Input shape:", input_shape)
 
 # Build the neural network
 model = Sequential()

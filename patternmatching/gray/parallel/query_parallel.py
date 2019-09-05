@@ -1,5 +1,5 @@
 import sys
-from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser
 import networkx as nx
 from multiprocessing import Manager, Pool
 

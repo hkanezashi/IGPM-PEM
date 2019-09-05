@@ -49,7 +49,7 @@ class Condition:
     edges = g.get_edge_data(src, dst)
     labels = {}
     # print edges
-    for eid, v in edges.iteritems():
+    for eid, v in edges.items():
       l = v[LABEL]
       labels[eid] = l
     return labels
@@ -95,7 +95,7 @@ class Condition:
   # def remove_edge_from_label(g, src, dst, label):
   #   labels = Condition.get_edge_labels(g, src, dst)
   #   eid = None
-  #   for k, v in labels.iteritems():
+  #   for k, v in labels.items():
   #     if v == label:
   #       eid = k
   #       break
@@ -151,7 +151,7 @@ class Condition:
   def satisfies_node(g, i, label, prop):
     if label and Condition.get_node_label(g, i) != label:
       return False
-    for k, v in prop.iteritems():
+    for k, v in prop.items():
       if k != LABEL and Condition.get_node_prop(g, i, k) != v:
         return False
     return True
@@ -166,7 +166,7 @@ class Condition:
     
     if label:
       nodes = [i for i in nodes if Condition.get_node_label(g, i) == label]
-    for k, v in prop.iteritems():
+    for k, v in prop.items():
       nodes = [i for i in nodes if Condition.get_node_prop(g, i, k) == v]
     return nodes
   

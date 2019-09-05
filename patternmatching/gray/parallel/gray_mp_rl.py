@@ -6,7 +6,7 @@ import time
 from networkx.readwrite import json_graph
 import os
 import sys
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from multiprocessing import Process  # Use Process instead of Pool
 
 sys.path.append(".")
@@ -250,7 +250,7 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, max_steps=10)
   subg = nx.subgraph(g, nodes)
   init_graph.add_nodes_from(subg.nodes(data=True))
   nx.set_edge_attributes(init_graph, 0, "add")
-  print init_graph.number_of_nodes(), init_graph.number_of_edges()
+  print(init_graph.number_of_nodes(), init_graph.number_of_edges())
   
   procs = list()
   edge_chunks = split_list(list(init_graph.edges), num_proc)

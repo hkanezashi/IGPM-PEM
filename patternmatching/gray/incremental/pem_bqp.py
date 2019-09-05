@@ -7,7 +7,7 @@ Patrial Execution Manager
 import sys
 import time
 import logging
-from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser
 import networkx as nx
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -47,7 +47,7 @@ window_length = 5  # Should be up to 20 (too large length will not converge Q-va
 env = GraphEnv(graph, query, cond, base_step, train_step, time_limit, window_length)
 nb_actions = env.action_space.n # len(env.action_space)
 input_shape = env.observation_space.shape
-print "Input shape:", input_shape
+print("Input shape:", input_shape)
 
 model = Sequential()
 model.add(Flatten(input_shape=input_shape))

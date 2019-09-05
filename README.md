@@ -1,7 +1,7 @@
 # IGPM-PEM
 
 IGPM-PEM is the scalable and approximate pattern matching for billion-scale property graphs.
-For more details, please visit our [Wiki page](https://github.com/hkanezashi/IGPM-PEM/wiki).
+Note our [Wiki page](https://github.com/hkanezashi/IGPM-PEM/wiki) is still under construction, so please refer this REAMD.md page first.
 
 
 # Software requirements
@@ -14,7 +14,7 @@ For more details, please visit our [Wiki page](https://github.com/hkanezashi/IGP
   - scipy
   - pyparsing
   - matplotlib
-  - networkx
+  - networkx (2.3 or later)
   - metis
   - keras
   - keras-rl
@@ -58,19 +58,17 @@ The configuration file has two sections: "Log" and "G-Ray".
 
 ## Batch
 ```bash
-python patternmatching/gray/query_call.py [ConfFile]
+python3 patternmatching/gray/query_call.py [ConfFile]
 ```
 
 ## Incremental (Naive version)
 ```bash
-export PYTHONPATH=$(pwd)
-python patternmatching/gray/incremental/query_call.py [ConfFile]
+python3 patternmatching/gray/incremental/query_call.py [ConfFile]
 ```
 
 ## Incremental (Adaptive version with PEM)
 ```bash
-export PYTHONPATH=$(pwd)
-python patternmatching/gray/incremental/pem_egqp.py [ConfFile]
+python3 patternmatching/gray/incremental/pem_egqp.py [ConfFile]
 ```
 
 

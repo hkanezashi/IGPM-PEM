@@ -41,7 +41,7 @@ def valid_result(result, query, nodemap):
   ## TODO: The number of vertices and edges of graphs with paths will vary
   hasPath = False
   etypes = nx.get_edge_attributes(query, TYPE)
-  for k, v in etypes.iteritems():
+  for k, v in etypes.items():
     if v == PATH:
       hasPath = True
       break
@@ -60,7 +60,7 @@ def valid_result(result, query, nodemap):
   # print nodemap
   # print query.edges()
   # print result.edges()
-  for qn, rn in nodemap.iteritems():
+  for qn, rn in nodemap.items():
     qd = query.degree(qn)
     rd = result.degree(rn)
     # print "degree:", qn, qd, rn, rd
@@ -128,7 +128,7 @@ class GRayMultiple:
       nodemap[k] = i
       result.add_node(i)
       result.nodes[i][LABEL] = il
-      for name, value in props.iteritems():
+      for name, value in props.items():
         result.nodes[i][name] = value
 
       # logging.debug("## Mapping node: " + str(k) + " : " + str(i))
@@ -286,7 +286,7 @@ class GRayMultiple:
       if not paths:
         logging.info("No more paths available. Exit G-Ray algorithm.")
         return
-      for j, path in paths.iteritems():
+      for j, path in paths.items():
         result_ = nx.MultiDiGraph(result) if self.directed else nx.MultiGraph(result)
         touched_ = list(touched)
         nodemap_ = dict(nodemap)
@@ -299,7 +299,7 @@ class GRayMultiple:
         nodemap_[l] = j
         props = Condition.get_node_props(self.graph, j)
         result_.add_node(j)
-        for key, value in props.iteritems():
+        for key, value in props.items():
           result_.nodes[j][key] = value
         
         prev = i
@@ -340,7 +340,7 @@ class GRayMultiple:
         props = Condition.get_node_props(self.graph, j)
         result_.add_node(j)
         # print props
-        for k, v in props.iteritems():
+        for k, v in props.items():
           result_.nodes[j][k] = v
         # print result_.nodes(data=True)[j]
         

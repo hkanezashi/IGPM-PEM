@@ -36,7 +36,7 @@ def make_server_manager(port, authkey):
   
   manager = JobQueueManager(address=('', port), authkey=authkey)
   manager.start()
-  print 'Server started at port %s' % port
+  print('Server started at port %s' % port)
   return manager
 
 
@@ -106,7 +106,7 @@ def make_client_manager(ip, port, authkey):
   ServerQueueManager.register('get_result_q')
   manager = ServerQueueManager(address=(ip, port), authkey=authkey)
   manager.connect()
-  print 'Client connected to %s:%s' % (ip, port)
+  print('Client connected to %s:%s' % (ip, port))
   return manager
 
 
@@ -132,5 +132,5 @@ pool.map_async(f, list(range(num_proc)))
 pool.close()
 pool.join()
 
-print count
+print(count)
 

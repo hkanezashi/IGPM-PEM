@@ -30,7 +30,7 @@ def recursive_louvain(graph, min_size):
     mem_list = list()
     
     if len(rev_part) == 1:
-      return [rev_part.values()[0]]
+      return list(rev_part.values())
     
     for members in rev_part.values():
       cluster = g.subgraph(members)
@@ -70,7 +70,7 @@ def get_recompute_nodes(graph, affected, min_size):
 
 
 def run_query_part(args):
-  grm, edges, pid = args
+  grm, edges, _ = args
   add_nodes = set([src for (src, dst) in edges] + [dst for (src, dst) in edges])
   affected_nodes = get_seeds(grm.graph, add_nodes, grm.community_size)
   grm.run_incremental_gray(edges, affected_nodes)
@@ -98,7 +98,7 @@ class GraphEnv(gym.Env):
     add_edge_timestamps = nx.get_edge_attributes(graph, "add")  # edge, time
     def dictinvert(d):
       inv = {}
-      for k, v in d.iteritems():
+      for k, v in d.items():
         keys = inv.setdefault(v, [])
         keys.append(k)
       return inv
@@ -159,15 +159,15 @@ class GraphEnv(gym.Env):
     add_nodes = set([src for (src, dst) in add_edges] + [dst for (src, dst) in add_edges])
 
     st = time.time()
-    procs = list()
-    edge_chunks = split_list(add_edges, num_proc)
-    for pid in range(num_proc):
-      # print(len(edge_chunks[pid]))
-      procs.append(Process(target=run_query_part, args=((self.grm, edge_chunks[pid], pid),)))
-    for proc in procs:
-      proc.start()
-    for proc in procs:
-      proc.join()
+    # procs = list()
+    # edge_chunks = split_list(add_edges, num_proc)
+    # for pid in range(num_proc):
+    #   procs.append(Process(target=run_query_part, args=((self.grm, edge_chunks[pid], pid),)))
+    # for proc in procs:
+    #   proc.start()
+    # for proc in procs:
+    #   proc.join()
+    run_query_part((self.grm, add_edges, None))
     ed = time.time()
     elapsed = ed - st
     print("Time at step %d: %f[s]" % (t, elapsed))
@@ -193,7 +193,7 @@ class GraphEnv(gym.Env):
   
   
   def render(self, mode='human', close=False):
-    # print self.count, self.observation_space, self.node_threshold
+    # print(self.count, self.observation_space, self.node_threshold)
     pass
   
   def close(self):

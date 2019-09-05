@@ -3,7 +3,7 @@ import json
 import time
 from networkx.readwrite import json_graph
 import sys
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from multiprocessing import Process  # Use Process instead of Pool
 
 sys.path.append(".")

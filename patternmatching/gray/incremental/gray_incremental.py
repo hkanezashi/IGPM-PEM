@@ -25,7 +25,7 @@ def valid_result(result, query, nodemap):
   ## TODO: The number of vertices and edges of graphs with paths will vary
   hasPath = False
   etypes = nx.get_edge_attributes(query, TYPE)
-  for k, v in etypes.iteritems():
+  for k, v in etypes.items():
     if v == PATH:
       hasPath = True
       break
@@ -41,10 +41,9 @@ def valid_result(result, query, nodemap):
     if er_num != eq_num:
       return False
 
-  for qn, rn in nodemap.iteritems():
+  for qn, rn in nodemap.items():
     qd = query.degree(qn)
     rd = result.degree(rn)
-    # print "degree:", qn, qd, rn, rd
     if qd != rd:
       return False
   
@@ -56,7 +55,6 @@ def get_init_graph(graph):
   init_edges = [e for e in edges if e[2]["add"] == 0]
   init_graph = nx.Graph()
   init_graph.add_edges_from(init_edges)
-  # print init_graph.edges.data(data=True)
   return init_graph
 
 
@@ -152,7 +150,7 @@ class GRayIncremental(GRayMultiple, object):
     kp = Condition.get_node_props(self.query, k)
     seeds = Condition.filter_nodes(self.graph, kl, kp, nodes)  # Find all candidate seed vertices
     # seeds = set(nodes) & set(seeds)  # Seed candidates are only updated nodes
-    print "Number of seeds:", len(seeds)
+    print("Number of seeds:", len(seeds))
     
     if not seeds:  ## No seed candidates
       logging.debug("No more seed vertices available. Exit G-Ray algorithm.")
@@ -176,7 +174,7 @@ class GRayIncremental(GRayMultiple, object):
       nodemap[k] = i
       result.add_node(i)
       result.node[i][LABEL] = il
-      for name, value in props.iteritems():
+      for name, value in props.items():
         result.node[i][name] = value
     
       touched.append(k)
@@ -344,7 +342,6 @@ class GRayIncremental(GRayMultiple, object):
       
       ## Forward Edge
       for l_ in self.query.neighbors(k_):
-        # print k_, kl, kp, l_, unproc.edges()
         if not unproc.has_edge(k_, l_):
           continue
         l = l_
@@ -391,7 +388,6 @@ class GRayIncremental(GRayMultiple, object):
     #### Find a path or edge (Begin)
     src, dst = (l, k) if reversed_edge else (k, l)
     elabel = Condition.get_edge_label(unproc, src, dst)
-    # print elabel
     if elabel is None:  # Accepts any labels
       eid = None
       el = ''
@@ -406,7 +402,7 @@ class GRayIncremental(GRayMultiple, object):
       if not paths:
         logging.debug("No more paths available. Exit G-Ray algorithm.")
         return
-      for j, path in paths.iteritems():
+      for j, path in paths.items():
         result_ = nx.MultiDiGraph(result) if self.directed else nx.MultiGraph(result)
         touched_ = list(touched)
         nodemap_ = dict(nodemap)
@@ -419,7 +415,7 @@ class GRayIncremental(GRayMultiple, object):
         nodemap_[l] = j
         props = Condition.get_node_props(self.graph, j)
         result_.add_node(j)
-        for key, value in props.iteritems():
+        for key, value in props.items():
           result_.node[j][key] = value
         
         prev = i
@@ -459,15 +455,12 @@ class GRayIncremental(GRayMultiple, object):
         nodemap_[l] = j
         props = Condition.get_node_props(self.graph, j)
         result_.add_node(j)
-        # print props
-        for k, v in props.iteritems():
+        for k, v in props.items():
           result_.node[j][k] = v
-        # print result_.nodes(data=True)[j]
         
         prev = g_src
         valid = True
         for n in path:
-          # print path, prev, n
           if not Condition.has_edge_label(self.graph, prev, n, el):
             valid = False
             break

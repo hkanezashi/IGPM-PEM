@@ -1,12 +1,10 @@
 # G-Ray for multiple threads
 
-# import pickle
 import json
 import time
 from networkx.readwrite import json_graph
-# import os
 import sys
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 from multiprocessing import Process  # Use Process instead of Pool
 
 sys.path.append(".")
@@ -58,7 +56,7 @@ class GRayParallelInc(GRayIncremental, object):
       nodemap[k] = i
       result.add_node(i)
       result.node[i][LABEL] = il
-      for name, value in props.iteritems():
+      for name, value in props.items():
         result.node[i][name] = value
       touched.append(k)
   
@@ -207,7 +205,7 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=10
   add_edge_timestamps = nx.get_edge_attributes(g, "add")  # edge, time
   def dictinvert(d):
     inv = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
       keys = inv.setdefault(v, [])
       keys.append(k)
     return inv
@@ -226,7 +224,7 @@ def run_query_parallel(g_file, q_args, time_limit=0.0, num_proc=1, base_steps=10
   subg = nx.subgraph(g, nodes)
   init_graph.add_nodes_from(subg.nodes(data=True))
   nx.set_edge_attributes(init_graph, "add", 0)
-  print init_graph.number_of_nodes(), init_graph.number_of_edges()
+  print(init_graph.number_of_nodes(), init_graph.number_of_edges())
   
   
   print("Run base G-Ray")

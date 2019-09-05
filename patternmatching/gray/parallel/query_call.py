@@ -1,4 +1,4 @@
-from configparser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser
 
 import networkx as nx
 import json
@@ -141,7 +141,7 @@ def run_gray_iterations(graph, query, directed, cond, max_steps, num_proc):
   add_edge_timestamps = nx.get_edge_attributes(graph, "add")  # edge, time
   def dictinvert(d):
     inv = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
       keys = inv.setdefault(v, [])
       keys.append(k)
     return inv

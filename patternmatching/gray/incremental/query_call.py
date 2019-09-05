@@ -1,4 +1,4 @@
-from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser
 
 import json
 from networkx.readwrite import json_graph
@@ -146,7 +146,7 @@ def recursive_louvain(graph, min_size):
     rev_part = create_reverse_partition(pt)
     mem_list = list()
     if len(rev_part) == 1:
-      return [rev_part.values()[0]]
+      return list(rev_part.values())
     for members in rev_part.values():
       cluster = g.subgraph(members)
       if len(members) >= num_th:
@@ -187,7 +187,7 @@ def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, tim
   add_edge_timestamps = nx.get_edge_attributes(graph, "add")  # edge, time
   def dictinvert(d):
     inv = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
       keys = inv.setdefault(v, [])
       keys.append(k)
     return inv
@@ -207,7 +207,7 @@ def run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, tim
   subg = nx.subgraph(graph, nodes)
   init_graph.add_nodes_from(subg.nodes(data=True))
   nx.set_edge_attributes(init_graph, "add", 0)
-  print init_graph.number_of_nodes(), init_graph.number_of_edges()
+  print("Nodes:%d, Edges:%d" % (init_graph.number_of_nodes(), init_graph.number_of_edges()))
 
   time_list = list()
 
@@ -294,7 +294,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_s
 
   if plot_graph:
     posg = nx.spring_layout(graph)
-    colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems()]
+    colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).items()]
     edge_labels = nx.get_edge_attributes(graph, LABEL)
     nx.draw_networkx(graph, posg, arrows=True, node_color=colors, node_size=1000, font_size=24)
     nx.draw_networkx_edge_labels(graph, posg, labels = edge_labels)
@@ -308,12 +308,10 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_s
   
   numv = query.number_of_nodes()
   nume = query.number_of_edges()
-  print "Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
-  # print query.nodes()
-  # print query.edges()
+  print("Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
   
   if plot_graph:
-    colors = [label_color[v] for k, v in nx.get_node_attributes(query, LABEL).iteritems()]
+    colors = [label_color[v] for k, v in nx.get_node_attributes(query, LABEL).items()]
     posq = nx.spring_layout(query)
     edge_labels = nx.get_edge_attributes(query, LABEL)
     nx.draw_networkx(query, posq, arrows=True, node_color=colors, node_size=1000, font_size=24)
@@ -328,15 +326,12 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_s
 
   patterns = run_gray_iterations(graph, query, directed, cond, base_steps, max_steps, time_limit)
   
-  # for pattern in patterns:
-  #   print pattern.get_graph().edges()
-  
   if plot_graph:
     # Export pattern graphs to PNG files
     num = 0
     for qresult in patterns:
       result = qresult.get_graph()
-      colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems() if result.has_node(k)]
+      colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).items() if result.has_node(k)]
       posr = {n: posg[n] for n in result.nodes()}
       nx.draw_networkx(result, posr, arrows=True, node_color=colors, node_size=1000, font_size=24)
       plt.draw()
@@ -354,7 +349,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_s
     gr = Grouping.Grouping()
     groups = gr.groupBy(patterns)
     for k, v in groups:
-      print k, len(v)
+      print(k, len(v))
   
   ## OrderBy
   if orderby:
@@ -362,14 +357,14 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, base_s
     ordered = od.orderBy(patterns)
     for result in patterns:
       g = result.get_graph()
-      print g.nodes(), g.edges()
+      print(g.nodes(), g.edges())
   
   ## Aggregator
   if aggregates:
     for aggregate in aggregates:
       ag = Aggregator(aggregate)
       ret = ag.get_result(patterns)
-      print aggregate, ret
+      print(aggregate, ret)
   
   return patterns
 

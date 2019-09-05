@@ -55,7 +55,7 @@ def valid_result(result, query, nodemap):
   ## Note: The number of vertices and edges of graphs with paths will vary
   hasPath = False
   etypes = nx.get_edge_attributes(query, TYPE)
-  for k, v in etypes.iteritems():
+  for k, v in etypes.items():
     if v == PATH:
       hasPath = True
       break
@@ -71,7 +71,7 @@ def valid_result(result, query, nodemap):
     if er_num != eq_num:
       return False
   
-  for qn, rn in nodemap.iteritems():
+  for qn, rn in nodemap.items():
     qd = query.degree(qn)
     rd = result.degree(rn)
     # print "degree:", qn, qd, rn, rd
@@ -158,7 +158,7 @@ def process_single_gray(seed, q_seed, query, cond, g_rwr, g_pre):
   nodemap[q_seed] = seed
   result.add_node(seed)
   # result.nodes[seed][LABEL] = il
-  # for name, value in props.iteritems():
+  # for name, value in props.items():
   #   result.nodes[seed][name] = value
   touched.append(q_seed)
 
@@ -239,7 +239,7 @@ def process_single_gray(seed, q_seed, query, cond, g_rwr, g_pre):
       result_.add_node(j)
       ## Property addition is not necessary
       # props = Condition.get_node_props(g, j)
-      # for k, v in props.iteritems():
+      # for k, v in props.items():
       #   result_.nodes[j][k] = v
     
       prev = g_src

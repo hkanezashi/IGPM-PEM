@@ -56,8 +56,8 @@ for tc in test_cases:
   qstr = tc[1]
   ans = tc[2]
   
-  print "Input Graph File:", gfile
-  print "Query Options:", qstr
+  print("Input Graph File:", gfile)
+  print("Query Options:", qstr)
   qargs = qstr.split(" ")
   logging.basicConfig(level=logging.WARNING)
   results = patternmatching.gray.query_call.run_query(gfile, qargs)

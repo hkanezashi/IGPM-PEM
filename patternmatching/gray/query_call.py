@@ -3,7 +3,7 @@ import json
 from networkx.readwrite import json_graph
 import sys
 import time
-from ConfigParser import ConfigParser  # Use ConfigParser instead of configparser
+from configparser import ConfigParser
 
 sys.path.append(".")
 
@@ -11,7 +11,7 @@ from patternmatching.gray.gray_multiple import GRayMultiple
 from patternmatching.query.Condition import *
 from patternmatching.query.ConditionParser import ConditionParser
 from patternmatching.query import Grouping, Ordering
-import aggregator
+import patternmatching.gray.aggregator
 
 
 ### Label -> matplotlib color string
@@ -116,17 +116,17 @@ def run_query_step(graph_json, query_args, base_steps=100, max_steps=10, time_li
   
   numv = graph.number_of_nodes()
   nume = graph.number_of_edges()
-  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  print("Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
 
   numv = query.number_of_nodes()
   nume = query.number_of_edges()
-  print "Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  print("Query Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
 
   ## Extract edge timestamp
   add_edge_timestamps = nx.get_edge_attributes(graph, "add")  # edge, time
   def dictinvert(d):
     inv = {}
-    for k, v in d.iteritems():
+    for k, v in d.items():
       keys = inv.setdefault(v, [])
       keys.append(k)
     return inv
@@ -175,7 +175,7 @@ def run_query_step(graph_json, query_args, base_steps=100, max_steps=10, time_li
     grm = GRayMultiple(init_graph, query, directed, cond, time_limit)
     numv = init_graph.number_of_nodes()
     nume = init_graph.number_of_edges()
-    print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+    print("Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
     
     st = time.time()
     grm.run_gray()
@@ -308,7 +308,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
   
   posg = nx.spring_layout(graph)
   if plot_graph:
-    colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems()]
+    colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).items()]
     edge_labels = nx.get_edge_attributes(graph, LABEL)
     nx.draw_networkx(graph, posg, arrows=True, node_color=colors, node_size=1000, font_size=24)
     nx.draw_networkx_edge_labels(graph, posg, labels = edge_labels)
@@ -324,7 +324,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
   print("Query Graph: %d vertices, %d edges" % (numv, nume))
   
   if plot_graph:
-    colors = [label_color[v] for k, v in nx.get_node_attributes(query, LABEL).iteritems()]
+    colors = [label_color[v] for k, v in nx.get_node_attributes(query, LABEL).items()]
     posq = nx.spring_layout(query)
     edge_labels = nx.get_edge_attributes(query, LABEL)
     nx.draw_networkx(query, posq, arrows=True, node_color=colors, node_size=1000, font_size=24)
@@ -367,7 +367,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
     num = 0
     for qresult in results.values():
       result = qresult.get_graph()
-      colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).iteritems() if result.has_node(k)]
+      colors = [label_color[v] for k, v in nx.get_node_attributes(graph, LABEL).items() if result.has_node(k)]
       posr = {n: posg[n] for n in result.nodes()}
       nx.draw_networkx(result, posr, arrows=True, node_color=colors, node_size=1000, font_size=24)
       plt.draw()
@@ -385,7 +385,7 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
     gr = Grouping.Grouping()
     groups = gr.groupBy(results)
     for k, v in groups:
-      print k, len(v)
+      print(k, len(v))
   
   ## OrderBy
   if orderby:
@@ -393,14 +393,14 @@ def run_query(graph_json, query_args, plot_graph=False, show_graph=False, time_l
     ordered = od.orderBy(results)
     for result in results:
       g = result.get_graph()
-      print g.nodes(), g.edges()
+      print(g.nodes(), g.edges())
   
   ## Aggregator
   if aggregates:
     for aggregate in aggregates:
       ag = aggregator.Aggregator(aggregate)
       ret = ag.get_result(results)
-      print aggregate, ret
+      print(aggregate, ret)
   
   return results
 

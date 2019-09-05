@@ -76,7 +76,7 @@ def load_graph(graph_json):
     graph = json_graph.node_link_graph(json_data)
   numv = graph.number_of_nodes()
   nume = graph.number_of_edges()
-  print "Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges"
+  print("Input Graph: " + str(numv) + " vertices, " + str(nume) + " edges")
   return graph
 
 
