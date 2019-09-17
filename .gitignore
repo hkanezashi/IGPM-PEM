@@ -4,6 +4,7 @@
 data/
 logs/
 conf/
+sample/large/
 
 *.iml
 *.pyc
@@ -14,6 +15,6 @@ temp*
 *.pickle
 
 hostfile
-*-test.ipynb
+*.ipynb
 .ipynb_checkpoints/
 *.sh
