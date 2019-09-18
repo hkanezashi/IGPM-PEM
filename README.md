@@ -2,7 +2,7 @@
 
 IGPM-PEM is the scalable and approximate pattern matching for billion-scale property graphs.
 
-Note our [Wiki page](https://github.com/hkanezashi/IGPM-PEM/wiki) is still under construction, so please refer this REAMD.md page first.
+**Note: Our [Wiki page](https://github.com/hkanezashi/IGPM-PEM/wiki) is still under construction, so please refer this README.md page first.**
 
 
 # Software requirements
